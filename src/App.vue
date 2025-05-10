@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Button } from './components/ui/button';
+// 필요한 컴포넌트들을 여기에 import
 </script>
 
 <template>
-  <Button>Hello World</Button>
+  <router-view />
 </template>
