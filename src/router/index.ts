@@ -35,8 +35,8 @@ const router = createRouter({
       props: true,
     },
     {
-      path: '/plan-view',
-      name: 'plan-view',
+      path: '/plan',
+      name: 'plan',
       component: () => import('@/views/PlanView.vue'),
     },
     {
