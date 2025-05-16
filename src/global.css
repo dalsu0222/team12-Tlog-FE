@@ -124,4 +124,7 @@
     @apply bg-background text-foreground;
     font-family: 'Pretendard', sans-serif;
   }
+  button {
+    @apply cursor-pointer;
+  }
 }
