@@ -1,7 +1,9 @@
 import { Loader } from '@googlemaps/js-api-loader';
+import { ref } from 'vue';
 
 // ✅ 이렇게 바꿔서 테스트
 export function usePlanMap() {
+  const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([]);
   const loader = new Loader({
     apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     version: 'weekly',
@@ -16,7 +18,6 @@ export function usePlanMap() {
   // ];
 
   let map: google.maps.Map;
-  let marker: google.maps.marker.AdvancedMarkerElement | null = null;
 
   const initMap = async () => {
     const { Map } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary;
@@ -58,36 +59,39 @@ export function usePlanMap() {
     return map;
   };
 
-  async function moveToPlace(lat: number, lng: number, name: string) {
-    if (!map) return;
-
-    const { AdvancedMarkerElement, PinElement } = (await loader.importLibrary(
+  async function addMarker({
+    position,
+    label,
+  }: {
+    position: google.maps.LatLng | google.maps.LatLngLiteral;
+    label?: string;
+  }) {
+    const { AdvancedMarkerElement, PinElement } = (await google.maps.importLibrary(
       'marker'
     )) as google.maps.MarkerLibrary;
-    const position = { lat, lng };
-    map.panTo(position);
-    map.setZoom(16);
-    // 기존 마커 제거
-    if (marker) marker.map = null;
 
-    // 새 핀 생성
     const pin = new PinElement({
-      glyph: name.charAt(0), // 첫 글자 사용
-      scale: 1.4,
+      glyph: label?.[0] ?? '',
     });
 
-    // AdvancedMarkerElement 마커 생성
-    marker = new AdvancedMarkerElement({
+    const marker = new AdvancedMarkerElement({
       map,
-      position: { lat, lng },
-      title: name,
+      position,
       content: pin.element,
-      gmpClickable: true,
     });
+
+    markers.value.push(marker);
+  }
+
+  function moveToLocation(position: google.maps.LatLng | google.maps.LatLngLiteral) {
+    map.setCenter(position);
+    map.setZoom(15);
   }
 
   return {
     initMap,
-    moveToPlace,
+    // moveToPlace,
+    addMarker,
+    moveToLocation,
   };
 }

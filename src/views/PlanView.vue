@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { usePlanMap } from '@/composables/plan/usePlanMap';
+import { onMounted } from 'vue';
+import { usePlaceSearch, usePlanMap } from '@/composables/plan';
 import { Command, CommandInput } from '@/components/ui/command';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,44 +8,24 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 type PlaceResult = {
   name: string;
   address: string;
-  lat: number;
-  lng: number;
+  location: google.maps.LatLng;
   photoUrl?: string;
 };
 
-const { initMap, moveToPlace } = usePlanMap();
+// 1. 지도 초기화
+const { initMap, moveToLocation, addMarker } = usePlanMap();
+onMounted(() => initMap());
 
-onMounted(() => {
-  initMap();
-});
+// 2. 장소 검색 훅
+const { query, places, isLoading, searchPlaces } = usePlaceSearch();
 
-const query = ref('');
-const places = ref<PlaceResult[]>([]);
-
-async function searchPlaces() {
-  const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary;
-
-  const request = {
-    textQuery: query.value,
-    fields: ['displayName', 'location', 'formattedAddress', 'photos'],
-    region: 'kr',
-    maxResultCount: 20,
-    language: 'ko',
-  };
-
-  const response = await Place.searchByText(request);
-
-  places.value = (response?.places || []).map(p => ({
-    name: p.displayName ?? '',
-    address: p.formattedAddress ?? '',
-    lat: p.location?.lat() ?? 0,
-    lng: p.location?.lng() ?? 0,
-    photoUrl: p.photos?.[0]?.getURI({ maxWidth: 400 }) ?? '',
-  }));
-}
-
+// 3. 검색 결과 클릭 시 지도 이동 + 마커 추가
 function handlePlaceClick(place: PlaceResult) {
-  moveToPlace(place.lat, place.lng, place.name);
+  moveToLocation(place.location);
+  addMarker({
+    position: place.location,
+    label: place.name,
+  });
 }
 </script>
 
@@ -54,20 +34,23 @@ function handlePlaceClick(place: PlaceResult) {
     <div class="flex w-full flex-col items-center gap-5">
       <div class="flex w-full items-center gap-2">
         <Command>
-          <CommandInput v-model="query" placeholder="장소 검색..." />
+          <CommandInput v-model="query" placeholder="장소 검색..." @keyup.enter="searchPlaces" />
         </Command>
-        <Button @click="searchPlaces">검색</Button>
+        <Button :disabled="isLoading" @click="searchPlaces">
+          {{ isLoading ? '검색 중...' : '검색' }}
+        </Button>
       </div>
 
       <ScrollArea class="w-full max-w-2xl">
         <div
-          v-for="(place, index) in places"
-          :key="index"
+          v-for="place in places"
+          :key="place.name + place.address"
+          class="mb-2 flex cursor-pointer items-center gap-4 rounded-lg border bg-white p-3 shadow hover:bg-gray-100"
           @click="handlePlaceClick(place)"
-          class="mb-2 flex items-center gap-4 rounded-lg border bg-white p-3 shadow"
         >
           <img
             v-if="place.photoUrl"
+            loading="lazy"
             :src="place.photoUrl"
             alt="장소 이미지"
             class="h-24 w-24 rounded object-cover"
