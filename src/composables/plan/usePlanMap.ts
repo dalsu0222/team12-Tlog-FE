@@ -20,12 +20,12 @@ export function usePlanMap() {
   let map: google.maps.Map | null = null;
 
   const initMap = async () => {
-    const { Map } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary;
+    const { Map: GoogleMap } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary;
     // const { AdvancedMarkerElement, PinElement } = (await loader.importLibrary(
     //   'marker'
     // )) as google.maps.MarkerLibrary;
 
-    map = new Map(document.getElementById('map') as HTMLElement, {
+    map = new GoogleMap(document.getElementById('map') as HTMLElement, {
       center: { lat: 37.501274, lng: 127.039585 },
       zoom: 15,
       mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID,
