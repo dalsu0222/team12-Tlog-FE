@@ -4,13 +4,7 @@ import { usePlaceSearch, usePlanMap } from '@/composables/plan';
 import { Command, CommandInput } from '@/components/ui/command';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-type PlaceResult = {
-  name: string;
-  address: string;
-  location: google.maps.LatLng;
-  photoUrl?: string;
-};
+import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
 
 // 1. 지도 초기화
 const { initMap, moveToLocation, addMarker } = usePlanMap();

@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 
-type PlaceResult = {
+export type PlaceResult = {
   name: string;
   address: string;
   photoUrl?: string;
