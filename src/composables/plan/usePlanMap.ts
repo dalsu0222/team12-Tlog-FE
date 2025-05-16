@@ -84,6 +84,7 @@ export function usePlanMap() {
   }
 
   function moveToLocation(position: google.maps.LatLng | google.maps.LatLngLiteral) {
+    // map 객체 초기화 되었는지 확인 필요(에러 처리)
     map?.setCenter(position);
     map?.setZoom(15);
   }
