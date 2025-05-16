@@ -15,13 +15,16 @@ export function usePlanMap() {
   //   { name: '마커 5', lat: 37.508, lng: 127.045 },
   // ];
 
+  let map: google.maps.Map;
+  let marker: google.maps.marker.AdvancedMarkerElement | null = null;
+
   const initMap = async () => {
     const { Map } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary;
     // const { AdvancedMarkerElement, PinElement } = (await loader.importLibrary(
     //   'marker'
     // )) as google.maps.MarkerLibrary;
 
-    const map = new Map(document.getElementById('map') as HTMLElement, {
+    map = new Map(document.getElementById('map') as HTMLElement, {
       center: { lat: 37.501274, lng: 127.039585 },
       zoom: 15,
       mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID,
@@ -55,7 +58,36 @@ export function usePlanMap() {
     return map;
   };
 
+  async function moveToPlace(lat: number, lng: number, name: string) {
+    if (!map) return;
+
+    const { AdvancedMarkerElement, PinElement } = (await loader.importLibrary(
+      'marker'
+    )) as google.maps.MarkerLibrary;
+    const position = { lat, lng };
+    map.panTo(position);
+    map.setZoom(16);
+    // 기존 마커 제거
+    if (marker) marker.map = null;
+
+    // 새 핀 생성
+    const pin = new PinElement({
+      glyph: name.charAt(0), // 첫 글자 사용
+      scale: 1.4,
+    });
+
+    // AdvancedMarkerElement 마커 생성
+    marker = new AdvancedMarkerElement({
+      map,
+      position: { lat, lng },
+      title: name,
+      content: pin.element,
+      gmpClickable: true,
+    });
+  }
+
   return {
     initMap,
+    moveToPlace,
   };
 }

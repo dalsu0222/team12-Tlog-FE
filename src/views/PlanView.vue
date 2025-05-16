@@ -8,10 +8,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 type PlaceResult = {
   name: string;
   address: string;
+  lat: number;
+  lng: number;
   photoUrl?: string;
 };
 
-const { initMap } = usePlanMap();
+const { initMap, moveToPlace } = usePlanMap();
 
 onMounted(() => {
   initMap();
@@ -33,13 +35,17 @@ async function searchPlaces() {
 
   const response = await Place.searchByText(request);
 
-  places.value = (response?.places || []).map(p => {
-    const name = p.displayName ?? '';
-    const address = p.formattedAddress ?? '';
-    const photoUrl = p.photos?.[0]?.getURI?.({ maxWidth: 400 });
+  places.value = (response?.places || []).map(p => ({
+    name: p.displayName ?? '',
+    address: p.formattedAddress ?? '',
+    lat: p.location?.lat() ?? 0,
+    lng: p.location?.lng() ?? 0,
+    photoUrl: p.photos?.[0]?.getURI({ maxWidth: 400 }) ?? '',
+  }));
+}
 
-    return { name, address, photoUrl };
-  });
+function handlePlaceClick(place: PlaceResult) {
+  moveToPlace(place.lat, place.lng, place.name);
 }
 </script>
 
@@ -57,6 +63,7 @@ async function searchPlaces() {
         <div
           v-for="(place, index) in places"
           :key="index"
+          @click="handlePlaceClick(place)"
           class="mb-2 flex items-center gap-4 rounded-lg border bg-white p-3 shadow"
         >
           <img
