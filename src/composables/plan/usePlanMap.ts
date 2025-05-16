@@ -17,7 +17,7 @@ export function usePlanMap() {
   //   { name: '마커 5', lat: 37.508, lng: 127.045 },
   // ];
 
-  let map: google.maps.Map;
+  let map: google.maps.Map | null = null;
 
   const initMap = async () => {
     const { Map } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary;
@@ -84,8 +84,8 @@ export function usePlanMap() {
   }
 
   function moveToLocation(position: google.maps.LatLng | google.maps.LatLngLiteral) {
-    map.setCenter(position);
-    map.setZoom(15);
+    map?.setCenter(position);
+    map?.setZoom(15);
   }
 
   return {
