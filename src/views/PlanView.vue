@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { usePlanMap } from '@/composables/plan/usePlanMap';
 import { Command, CommandInput } from '@/components/ui/command';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ref } from 'vue';
+
+type PlaceResult = {
+  name: string;
+  address: string;
+  photoUrl?: string;
+};
 
 const { initMap } = usePlanMap();
 
@@ -13,50 +18,62 @@ onMounted(() => {
 });
 
 const query = ref('');
-const places = ref<google.maps.places.Place[]>([]);
+const places = ref<PlaceResult[]>([]);
 
 async function searchPlaces() {
   const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary;
 
   const request = {
     textQuery: query.value,
-    fields: ['displayName', 'location'],
+    fields: ['displayName', 'location', 'formattedAddress', 'photos'],
     region: 'kr',
     maxResultCount: 20,
     language: 'ko',
   };
 
   const response = await Place.searchByText(request);
-  places.value = response?.places || [];
+
+  places.value = (response?.places || []).map(p => {
+    const name = p.displayName ?? '';
+    const address = p.formattedAddress ?? '';
+    const photoUrl = p.photos?.[0]?.getURI?.({ maxWidth: 400 });
+
+    return { name, address, photoUrl };
+  });
 }
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center gap-4 bg-gray-100">
-    <!-- <div class="flex w-full max-w-sm items-center gap-1.5">
-      <Input id="search" type="text" placeholder="장소를 입력하세요..." />
-      <Button type="submit">Subscribe</Button>
-    </div> -->
-    <div class="p-4">
-      <div class="flex h-12 w-full max-w-sm items-center gap-1.5">
-        <Command class="h-full">
-          <CommandInput v-model="query" placeholder="검색어를 입력하세요" />
+  <div class="flex min-h-screen items-center justify-start gap-4 bg-gray-100 p-6">
+    <div class="flex w-full flex-col items-center gap-5">
+      <div class="flex w-full items-center gap-2">
+        <Command>
+          <CommandInput v-model="query" placeholder="장소 검색..." />
         </Command>
-        <Button class="h-full" @click="searchPlaces">검색</Button>
+        <Button @click="searchPlaces">검색</Button>
       </div>
 
-      <ScrollArea class="mt-4 h-64 overflow-auto rounded border">
-        <ul v-if="places.length">
-          <li v-for="place in places" :key="place.id" class="border-b p-2">
-            <div class="font-semibold">{{ place.displayName }}</div>
-            <div class="text-sm text-gray-500">
-              {{ place.location?.lat() }}, {{ place.location?.lng() }}
-            </div>
-          </li>
-        </ul>
-        <p v-else class="text-center text-gray-400">검색 결과가 없습니다.</p>
+      <ScrollArea class="w-full max-w-2xl">
+        <div
+          v-for="(place, index) in places"
+          :key="index"
+          class="mb-2 flex items-center gap-4 rounded-lg border bg-white p-3 shadow"
+        >
+          <img
+            v-if="place.photoUrl"
+            :src="place.photoUrl"
+            alt="장소 이미지"
+            class="h-24 w-24 rounded object-cover"
+          />
+
+          <div>
+            <div class="text-lg font-semibold">{{ place.name }}</div>
+            <div class="text-sm text-gray-600">{{ place.address }}</div>
+          </div>
+        </div>
       </ScrollArea>
     </div>
-    <div id="map" style="width: 50%; height: 500px"></div>
+
+    <div id="map" class="mt-6 h-[400px] w-full rounded-lg shadow" />
   </div>
 </template>
