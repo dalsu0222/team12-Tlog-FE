@@ -23,18 +23,20 @@ onMounted(() => initMap());
 // 2. 장소 검색 훅
 const { query, places, isLoading, searchPlaces } = usePlaceSearch();
 
-// 3. 검색 결과 및 추가된 장소 클릭 시 지도 이동 및 마커 표시
+// 3. 사용자가 장소를 클릭하면 해당 위치로 지도를 이동하고 마커를 표시
 function handlePlaceClick(place: PlaceResult) {
   moveToLocation(place.location);
   showMarkerForSearchClick(place, dayPlans);
 }
 
+// 4. 여행 일 수 관리 - 각 일차별로 방문할 장소들을 저장하는 반응형 객체
 const dayPlans = reactive<Record<number, PlaceResult[]>>({});
 
-const selectedPlace = ref<PlaceResult | null>(null);
-const isModalOpen = ref(false);
-const dayLength = ref(4); // 여행 일 수 (예: day1~day3)
+const selectedPlace = ref<PlaceResult | null>(null); // 현재 선택된 장소를 저장하는 ref
+const isModalOpen = ref(false); // 일차 선택 모달의 표시 여부를 관리하는 ref
+const dayLength = ref(4); // 여행 일 수 (기본값: 4일)
 
+// 5. 여행 일 수 변경 시 dayPlans 초기화, 기존 dayPlans에 없는 day만 초기화
 watch(
   dayLength,
   newLen => {
@@ -45,7 +47,7 @@ watch(
       }
     }
 
-    // dayLength보다 긴 day는 삭제해도 된다면 이 로직도 가능
+    // dayLength보다 긴 day는 삭제
     for (const key of Object.keys(dayPlans)) {
       const day = Number(key);
       if (day > newLen) {
@@ -56,16 +58,19 @@ watch(
   { immediate: true }
 );
 
+// 6. 장소 삭제 - 특정 일차에서 선택한 장소를 삭제하고 해당 마커도 지도에서 제거
 function removePlaceFromDay(day: number, placeId: string) {
   dayPlans[day] = dayPlans[day].filter(p => p.placeId !== placeId);
   removeMarkerForDay(day, placeId);
 }
 
+// 7. 장소 추가 - 선택한 장소를 어느 일차에 추가할지 선택하는 모달 열기
 function openDaySelectModal(place: PlaceResult) {
   selectedPlace.value = place;
   isModalOpen.value = true;
 }
 
+// 8. 장소 추가 확정 - 선택한 장소를 지정된 일차에 추가하고 지도에 마커를 표시
 function confirmDaySelection(day: number) {
   if (!selectedPlace.value) return;
 
