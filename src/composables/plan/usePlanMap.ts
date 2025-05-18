@@ -6,6 +6,19 @@ interface CustomMarker extends google.maps.marker.AdvancedMarkerElement {
   placeId: string;
 }
 
+export const dayColors = [
+  '#FF6B6B', // 빨강
+  '#FFA94D', // 오렌지
+  '#FFD43B', // 노랑
+  '#69DB7C', // 연초록
+  '#4DABF7', // 하늘
+  '#9775FA', // 보라
+  '#FF87CA', // 핑크
+  '#A9E34B', // 연두
+  '#40C057', // 진초록
+  '#A9A9A9', // 회색
+];
+
 export function usePlanMap() {
   const markers = ref<CustomMarker[]>([]);
   const loader = new Loader({
@@ -41,8 +54,6 @@ export function usePlanMap() {
     const { AdvancedMarkerElement, PinElement } = (await google.maps.importLibrary(
       'marker'
     )) as google.maps.MarkerLibrary;
-
-    const dayColors = ['#3189C6', '#FF657C', '#5AB4F0', '#FDBA74']; // day1~day4 색상
 
     // 마커 디자인 담당
     const pin = new PinElement({
