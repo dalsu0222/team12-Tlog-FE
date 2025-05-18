@@ -1,33 +1,33 @@
 import { Loader } from '@googlemaps/js-api-loader';
 import { ref } from 'vue';
+import type { PlaceResult } from './usePlaceSearch';
 
-// ✅ 이렇게 바꿔서 테스트
+interface CustomMarker extends google.maps.marker.AdvancedMarkerElement {
+  placeId: string;
+}
+
 export function usePlanMap() {
-  const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const markers = ref<CustomMarker[]>([]);
   const loader = new Loader({
     apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     version: 'weekly',
   });
 
-  // const places = [
-  //   { name: '마커 1', lat: 37.501274, lng: 127.039585 },
-  //   { name: '마커 2', lat: 37.502, lng: 127.039 },
-  //   { name: '마커 3', lat: 37.504, lng: 127.043 },
-  //   { name: '마커 4', lat: 37.506, lng: 127.041 },
-  //   { name: '마커 5', lat: 37.508, lng: 127.045 },
-  // ];
-
   let map: google.maps.Map | null = null;
+
+  const searchClickMarker = ref<google.maps.marker.AdvancedMarkerElement | null>(null);
+  let AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement;
+  let PinElement: typeof google.maps.marker.PinElement;
 
   const initMap = async () => {
     const { Map: GoogleMap } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary;
-    // const { AdvancedMarkerElement, PinElement } = (await loader.importLibrary(
-    //   'marker'
-    // )) as google.maps.MarkerLibrary;
+    const markerLib = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary;
+    AdvancedMarkerElement = markerLib.AdvancedMarkerElement;
+    PinElement = markerLib.PinElement;
 
     map = new GoogleMap(document.getElementById('map') as HTMLElement, {
       center: { lat: 37.501274, lng: 127.039585 },
-      zoom: 15,
+      zoom: 10,
       mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID,
     });
 
@@ -80,7 +80,39 @@ export function usePlanMap() {
       content: pin.element,
     });
 
+    markers.value.push(marker as CustomMarker);
+  }
+
+  async function addMarkerForDay(day: number, place: PlaceResult, order: number) {
+    const { AdvancedMarkerElement, PinElement } = (await google.maps.importLibrary(
+      'marker'
+    )) as google.maps.MarkerLibrary;
+
+    const dayColors = ['#3189C6', '#FF657C', '#5AB4F0', '#FDBA74']; // day1~day4 색상
+
+    const pin = new PinElement({
+      glyph: String(order), // 1, 2, 3 등 순서
+      background: dayColors[day - 1] ?? '#888',
+      borderColor: '#ffffff',
+      glyphColor: '#ffffff',
+    });
+
+    const marker = new AdvancedMarkerElement({
+      map,
+      position: place.location,
+      content: pin.element,
+    }) as CustomMarker;
+
+    marker.placeId = place.placeId;
     markers.value.push(marker);
+  }
+
+  async function removeMarkerForDay(day: number, placeId: string) {
+    const marker = markers.value.find(m => m.placeId === placeId);
+    if (marker) {
+      marker.map = null;
+      markers.value = markers.value.filter(m => m !== marker);
+    }
   }
 
   function moveToLocation(position: google.maps.LatLng | google.maps.LatLngLiteral) {
@@ -89,10 +121,42 @@ export function usePlanMap() {
     map?.setZoom(15);
   }
 
+  // 검색 결과 클릭 시 마커 표시
+  function showMarkerForSearchClick(place: PlaceResult, dayPlans: Record<number, PlaceResult[]>) {
+    if (!map) return;
+
+    const isAlreadyPlanned = Object.values(dayPlans).some(places =>
+      places.some(p => p.placeId === place.placeId)
+    );
+
+    if (isAlreadyPlanned) return;
+
+    if (!map) return;
+
+    if (searchClickMarker.value) {
+      searchClickMarker.value.map = null;
+      searchClickMarker.value = null;
+    }
+
+    const pin = new PinElement({
+      glyph: '📍',
+      background: '#888',
+    });
+
+    searchClickMarker.value = new AdvancedMarkerElement({
+      map,
+      position: place.location.toJSON(),
+      content: pin.element,
+    });
+  }
+
   return {
     initMap,
     // moveToPlace,
     addMarker,
+    addMarkerForDay,
+    removeMarkerForDay,
     moveToLocation,
+    showMarkerForSearchClick,
   };
 }
