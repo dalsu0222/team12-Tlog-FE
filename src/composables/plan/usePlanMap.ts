@@ -59,30 +59,6 @@ export function usePlanMap() {
     return map;
   };
 
-  async function addMarker({
-    position,
-    label,
-  }: {
-    position: google.maps.LatLng | google.maps.LatLngLiteral;
-    label?: string;
-  }) {
-    const { AdvancedMarkerElement, PinElement } = (await google.maps.importLibrary(
-      'marker'
-    )) as google.maps.MarkerLibrary;
-
-    const pin = new PinElement({
-      glyph: label?.[0] ?? '',
-    });
-
-    const marker = new AdvancedMarkerElement({
-      map,
-      position,
-      content: pin.element,
-    });
-
-    markers.value.push(marker as CustomMarker);
-  }
-
   async function addMarkerForDay(day: number, place: PlaceResult, order: number) {
     const { AdvancedMarkerElement, PinElement } = (await google.maps.importLibrary(
       'marker'
@@ -140,7 +116,8 @@ export function usePlanMap() {
 
     const pin = new PinElement({
       glyph: '📍',
-      background: '#888',
+      background: 'var(--color-primary)',
+      borderColor: 'var(--color-gray-600)',
     });
 
     searchClickMarker.value = new AdvancedMarkerElement({
@@ -152,8 +129,6 @@ export function usePlanMap() {
 
   return {
     initMap,
-    // moveToPlace,
-    addMarker,
     addMarkerForDay,
     removeMarkerForDay,
     moveToLocation,

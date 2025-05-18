@@ -16,26 +16,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
 
 // 1. 지도 초기화
-const {
-  initMap,
-  moveToLocation,
-  addMarker,
-  addMarkerForDay,
-  removeMarkerForDay,
-  showMarkerForSearchClick,
-} = usePlanMap();
+const { initMap, moveToLocation, addMarkerForDay, removeMarkerForDay, showMarkerForSearchClick } =
+  usePlanMap();
 onMounted(() => initMap());
 
 // 2. 장소 검색 훅
 const { query, places, isLoading, searchPlaces } = usePlaceSearch();
 
-// 3. 검색 결과 클릭 시 지도 이동 + 마커 추가
+// 3. 검색 결과 및 추가된 장소 클릭 시 지도 이동 및 마커 표시
 function handlePlaceClick(place: PlaceResult) {
   moveToLocation(place.location);
-  addMarker({
-    position: place.location,
-    label: place.name,
-  });
   showMarkerForSearchClick(place, dayPlans);
 }
 
