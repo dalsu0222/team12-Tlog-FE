@@ -14,6 +14,7 @@ export function usePlanMap() {
   });
 
   let map: google.maps.Map | null = null;
+  let infoWindow: google.maps.InfoWindow;
 
   const searchClickMarker = ref<google.maps.marker.AdvancedMarkerElement | null>(null);
   let AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement;
@@ -31,31 +32,8 @@ export function usePlanMap() {
       mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID,
     });
 
-    // const infoWindow = new google.maps.InfoWindow();
+    infoWindow = new google.maps.InfoWindow();
 
-    // places.forEach((place, i) => {
-    //   const pin = new PinElement({
-    //     glyph: `${i + 1}`,
-    //     background: '#3189C6',
-    //     borderColor: '#ffffff',
-    //     glyphColor: '#ffffff',
-    //   });
-
-    //   const marker = new AdvancedMarkerElement({
-    //     position: { lat: place.lat, lng: place.lng },
-    //     map,
-    //     title: place.name,
-    //     content: pin.element,
-    //     gmpClickable: true,
-    //   });
-
-    //   // InfoWindow 이벤트 연결
-    //   marker.addListener('gmp-click', () => {
-    //     infoWindow.close();
-    //     infoWindow.setContent(`<strong>${place.name}</strong>`);
-    //     infoWindow.open(map, marker as unknown as google.maps.MVCObject);
-    //   });
-    // });
     return map;
   };
 
@@ -66,6 +44,7 @@ export function usePlanMap() {
 
     const dayColors = ['#3189C6', '#FF657C', '#5AB4F0', '#FDBA74']; // day1~day4 색상
 
+    // 마커 디자인 담당
     const pin = new PinElement({
       glyph: String(order), // 1, 2, 3 등 순서
       background: dayColors[day - 1] ?? '#888',
@@ -73,13 +52,45 @@ export function usePlanMap() {
       glyphColor: '#ffffff',
     });
 
+    // 마커 생성
     const marker = new AdvancedMarkerElement({
       map,
       position: place.location,
       content: pin.element,
+      gmpClickable: true, // 추가해야 기존 마커 클릭이 됨.
     }) as CustomMarker;
 
     marker.placeId = place.placeId;
+    // ✅ 클릭 이벤트 추가
+    marker.addEventListener('gmp-click', () => {
+      infoWindow.close(); // 기존 창 닫기
+
+      const photoHTML = place.photoUrl
+        ? `<img src="${place.photoUrl}" alt="${place.name}" style="width:100px;height:auto;border-radius:8px;margin-bottom:6px;" />`
+        : '';
+
+      infoWindow.setContent(`
+        <div style="font-size:14px;max-width:200px;">
+          ${photoHTML}
+          <strong>${place.name}</strong><br />
+          ${place.address}
+        </div>
+      `);
+
+      // 사진 위 공백 버그 해결
+      google.maps.event.addListener(infoWindow, 'domready', () => {
+        const closeBtn = document.querySelector('.gm-ui-hover-effect') as HTMLElement;
+        if (closeBtn) {
+          closeBtn.style.position = 'absolute';
+          closeBtn.style.top = '0';
+          closeBtn.style.right = '0';
+        }
+      });
+
+      infoWindow.open(map, marker);
+      map?.panTo(place.location); // 마커 위치로 이동
+    });
+
     markers.value.push(marker);
   }
 
