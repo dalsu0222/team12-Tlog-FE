@@ -9,7 +9,28 @@ interface AuthState {
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
-    user: sessionStorage.getItem('user') ? JSON.parse(sessionStorage.getItem('user')!) : null,
+    user: (() => {
+      try {
+        const userStr = sessionStorage.getItem('user');
+        if (!userStr) return null;
+        const user = JSON.parse(userStr);
+        // 간단한 타입 검증 추가
+        if (
+          user &&
+          typeof user === 'object' &&
+          'userId' in user &&
+          'nickname' in user &&
+          'role' in user
+        ) {
+          return user as User;
+        }
+        return null;
+      } catch (e) {
+        console.error('사용자 데이터 파싱 오류:', e);
+        sessionStorage.removeItem('user'); // 손상된 데이터 제거
+        return null;
+      }
+    })(),
     accessToken: sessionStorage.getItem('accessToken'),
   }),
 
