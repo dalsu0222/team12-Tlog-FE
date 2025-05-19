@@ -1,20 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.svg';
 import router from '@/router';
+import { useAuthStore } from '@/stores/auth';
 
-const isLoggedIn = ref(false); // 전역으로 관리
+const authStore = useAuthStore();
 
 const handleLogin = () => {
-  if (!isLoggedIn.value) {
-    router.push('/login');
-    isLoggedIn.value = true;
-  }
+  router.push('/login');
 };
 
 const handleLogout = () => {
-  isLoggedIn.value = false;
+  authStore.clearAuth();
   router.push('/login');
 };
 </script>
@@ -40,7 +37,7 @@ const handleLogout = () => {
       </ul>
       <div class="flex items-center">
         <Button
-          v-if="!isLoggedIn"
+          v-if="!authStore.isAuthenticated"
           class="bg-secondary hover:bg-bold text-white"
           @click="handleLogin"
         >
