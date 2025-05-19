@@ -42,6 +42,8 @@
   --color-primary-foreground: #0a0b0d;
   --color-secondary: #a1dbff; /* = point-300 */
   --color-secondary-foreground: #0a0b0d;
+  --color-bold: #5ab4f0;
+  --color-bold-foreground: #0a0b0d;
   --font-sans: 'Pretendard', sans-serif;
 }
 
