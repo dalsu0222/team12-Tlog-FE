@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.svg';
+import myIcon from '@/assets/my.svg';
 import router from '@/router';
 import { useAuthStore } from '@/stores/auth';
 
@@ -36,16 +37,19 @@ const handleLogout = () => {
         </li>
       </ul>
       <div class="flex items-center">
-        <Button
-          v-if="!authStore.isAuthenticated"
-          class="bg-secondary hover:bg-bold text-white"
-          @click="handleLogin"
-        >
-          로그인
-        </Button>
-        <Button v-else class="bg-secondary hover:bg-bold text-white" @click="handleLogout">
-          로그아웃
-        </Button>
+        <div v-if="authStore.isAuthenticated">
+          <div class="flex items-center gap-4">
+            <router-link to="/my">
+              <img :src="myIcon" alt="my page" class="h-6 w-6" />
+            </router-link>
+            <Button class="bg-secondary hover:bg-bold text-white" @click="handleLogout">
+              로그아웃
+            </Button>
+          </div>
+        </div>
+        <div v-else>
+          <Button class="bg-secondary hover:bg-bold text-white" @click="handleLogin">로그인</Button>
+        </div>
       </div>
     </nav>
   </header>
