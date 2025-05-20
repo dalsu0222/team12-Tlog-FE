@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
+import { useAuthStore } from '@/stores/auth';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -39,6 +40,12 @@ const router = createRouter({
           name: 'plans',
           component: () => import('@/views/PlanList.vue'),
         },
+        {
+          path: '/my',
+          name: 'my',
+          component: () => import('@/views/MyPage.vue'),
+          meta: { requiresAuth: true },
+        },
       ],
     },
 
@@ -54,6 +61,18 @@ const router = createRouter({
       component: () => import('@/views/PlanView.vue'),
     },
   ],
+});
+
+// 라우터 가드 추가
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore();
+
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    // 인증이 필요한 페이지인데 로그인이 되어있지 않은 경우, 로그인 페이지로 리다이렉트
+    next({ name: 'login' });
+  } else {
+    next();
+  }
 });
 
 export default router;
