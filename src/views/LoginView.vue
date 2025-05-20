@@ -19,7 +19,7 @@ onMounted(() => {
 
     try {
       const res = await api.post('/api/auth/login', { socialId: googleUserId });
-      const accessToken = res.headers.authorization?.replace('Bearer ', '');
+      const accessToken = res.headers['authorization']?.replace('Bearer ', '');
       const user = res.data.data;
 
       if (res?.status === 200) {
