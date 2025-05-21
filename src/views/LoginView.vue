@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.png';
 import googleIcon from '@/assets/google-icon.svg';
 import kakaoIcon from '@/assets/kakao-icon.svg';
+import { AxiosError } from 'axios';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -31,14 +32,7 @@ async function handleGoogleLogin({ credential }: { credential: string }) {
     authStore.setAuth(user, accessToken);
     router.push('/');
   } catch (err) {
-    if (
-      err instanceof Error &&
-      'response' in err &&
-      typeof err.response === 'object' &&
-      err.response !== null &&
-      'status' in err.response &&
-      err.response.status === 401
-    ) {
+    if (err instanceof AxiosError && err.response?.status === 401) {
       authStore.setTempToken(googleUserId);
       router.push('/signup');
     } else {
