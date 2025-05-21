@@ -82,7 +82,6 @@ onMounted(() => {
             <img :src="kakaoIcon" alt="Kakao" class="h-6 w-6" />
             카카오로 로그인
           </Button>
-          <div id="googleButton"></div>
         </div>
       </div>
     </div>
