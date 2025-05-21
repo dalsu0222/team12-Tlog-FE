@@ -4,5 +4,5 @@ console.log(props.id);
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-gray-50"></div>
+  <div class="flex min-h-screen items-center justify-center bg-gray-50">dlehd</div>
 </template>
