@@ -10,6 +10,7 @@ declare global {
           initialize: (config: any) => void;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           renderButton: (element: HTMLElement | null, options: any) => void;
+          prompt: () => void;
         };
       };
     };
