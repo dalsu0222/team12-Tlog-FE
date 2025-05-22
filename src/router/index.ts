@@ -60,6 +60,11 @@ const router = createRouter({
       name: 'plan',
       component: () => import('@/views/PlanView.vue'),
     },
+    {
+      path: '/test',
+      name: 'test',
+      component: () => import('@/views/TestView.vue'),
+    },
   ],
 });
 
