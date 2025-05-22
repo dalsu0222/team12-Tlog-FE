@@ -45,6 +45,8 @@
   --color-bold: #5ab4f0;
   --color-bold-foreground: #0a0b0d;
   --font-sans: 'Pretendard', sans-serif;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
 }
 
 :root {
