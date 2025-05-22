@@ -1,4 +1,3 @@
-<!-- views/RecordList.vue -->
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -11,33 +10,27 @@ import {
 } from '@/services/api/tripService';
 import { Button } from '@/components/ui/button';
 
-// 상태 관리
 const allTripData = ref<TripInfoDto[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 const router = useRouter();
 
-// 데이터 필터링: 필터 기준에 따라 처리 필요한 여행 (hasStep1 또는 hasStep2가 false인 경우)
 const myStories = computed<TripStory[]>(() => {
   return allTripData.value
-    .filter(trip => !trip.hasStep1 || !trip.hasStep2) // 처리 필요한 여행만 필터링
+    .filter(trip => !trip.hasStep1 || !trip.hasStep2)
     .map((trip, index) => convertToTripStory(trip, index));
 });
 
-// 데이터 필터링: 완료된 여행 (hasStep1과 hasStep2가 모두 true인 경우)
 const completedStories = computed<TripStory[]>(() => {
   return allTripData.value
-    .filter(trip => trip.hasStep1 && trip.hasStep2) // 완료된 여행만 필터링
-    .map((trip, index) => convertToTripStory(trip, index + 100)); // ID 충돌 방지를 위해 index에 100 추가
+    .filter(trip => trip.hasStep1 && trip.hasStep2)
+    .map((trip, index) => convertToTripStory(trip, index));
 });
 
-// 여행 데이터 로드
 const loadTripData = async () => {
   try {
     isLoading.value = true;
     error.value = null;
-
-    // API 호출 - 모든 데이터를 한 번에 가져옴
     const trips = await fetchAllTripRecords();
     allTripData.value = trips;
   } catch (err) {
@@ -48,23 +41,14 @@ const loadTripData = async () => {
   }
 };
 
-// 페이지 이동 핸들러
 const handleNavigate = ({ tripId, isCompleted }: { tripId: number; isCompleted: boolean }) => {
-  if (isCompleted) {
-    // 보기 모드 - 기록 상세보기
-    router.push(`/records/${tripId}`);
-  } else {
-    // 후기 작성 모드 - 작성 페이지
-    router.push(`/records/${tripId}`);
-  }
+  router.push(`/records/${tripId}`);
 };
 
-// 새 여행 생성 페이지로 이동
 const goToCreateTrip = () => {
   router.push('/');
 };
 
-// 컴포넌트 마운트 시 데이터 로드
 onMounted(() => {
   loadTripData();
 });
