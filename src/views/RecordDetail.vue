@@ -45,9 +45,10 @@ const isLoading = ref(true);
 const error = ref<string | null>(null);
 const isSavingMemos = ref(false);
 
-// 초기 토글 상태 계산 - hasStep1, hasStep2에 따라 결정
+// Step1은 항상 열려있게 설정
 const initialStep1Value = 'step1';
 
+// Step2는 hasStep2에 따라 결정
 const initialStep2Value = computed(() => {
   if (!tripDetail.value) return undefined;
   return tripDetail.value.hasStep2 ? 'step2' : undefined;
@@ -75,6 +76,23 @@ const handleStoryGenerated = (content: string) => {
     tripDetail.value.aiStoryContent = content;
     tripDetail.value.hasStep2 = true;
   }
+  console.log('AI 스토리가 생성되었습니다.');
+};
+
+const handleStoryDeleted = () => {
+  if (tripDetail.value) {
+    tripDetail.value.aiStoryContent = null;
+    tripDetail.value.hasStep2 = false;
+  }
+  console.log('AI 스토리가 삭제되었습니다.');
+};
+
+const handleStorySaved = (content: string) => {
+  if (tripDetail.value) {
+    tripDetail.value.aiStoryContent = content;
+    // hasStep2는 이미 true이므로 그대로 유지
+  }
+  console.log('AI 스토리가 저장되었습니다.');
 };
 
 const handleSaveMemos = async (memoRecords: MemoRecord[]) => {
@@ -165,7 +183,7 @@ onMounted(() => {
 
       <!-- Accordion Steps - 각 컴포넌트를 별도 Accordion으로 분리하여 독립적으로 동작 -->
       <div class="space-y-4">
-        <!-- Step 1 Accordion - hasStep1에 따라 초기 상태 결정 -->
+        <!-- Step 1 Accordion - 항상 열려있음 -->
         <Accordion type="single" collapsible :default-value="initialStep1Value">
           <TripPlanAccordion
             :plans="tripDetail.tripPlans"
@@ -183,6 +201,8 @@ onMounted(() => {
             :ai-story-content="tripDetail.aiStoryContent"
             :has-story="tripDetail.hasStep2"
             @storyGenerated="handleStoryGenerated"
+            @storyDeleted="handleStoryDeleted"
+            @storySaved="handleStorySaved"
           />
         </Accordion>
       </div>
