@@ -13,6 +13,7 @@ import {
 import { type CarouselApi } from '@/components/ui/carousel';
 import { Loader2, Check, Save } from 'lucide-vue-next';
 import TripRecordCard from './TripRecordCard.vue';
+import { toast } from 'vue-sonner';
 
 interface TripPlan {
   day: number;
@@ -126,24 +127,79 @@ const calculateDate = (day: number): Date => {
 
 // 모든 메모 저장
 const saveAllMemos = async () => {
+  if (!hasUnsavedChanges.value) {
+    toast.error('저장할 내용이 없습니다', {
+      description: '변경사항이 없어 저장이 필요하지 않습니다',
+    });
+    return;
+  }
+
   const recordsToSave = Object.entries(memos.value).map(([day, memo]) => ({
     day: parseInt(day),
     memo: memo,
     date: calculateDate(parseInt(day)),
   }));
 
+  // 부모 컴포넌트에게 저장 요청이 시작됨을 알림
+  // 부모는 이 시점에서 isSaving을 true로 설정할 것임
   try {
-    await emit('saveMemos', recordsToSave);
+    console.log('여행 기록 저장 시작:', recordsToSave);
+
+    // emit은 Promise를 반환하지 않기 때문에, 부모 컴포넌트에서 성공/실패 여부를
+    // 다시 알려줄 필요가 있습니다. 부모 컴포넌트에서 결과를 반환할 때까지 기다립니다.
+    const result = await new Promise((resolve, reject) => {
+      // saveMemos 이벤트 발생 - 부모 컴포넌트에서 API 호출
+      emit('saveMemos', recordsToSave, { onSuccess: resolve, onError: reject });
+    });
+
+    console.log('저장 성공:', result);
 
     // 저장 완료 상태로 변경
     saveComplete.value = true;
+
+    // 성공 토스트 메시지 표시
+    toast.success('여행 기록이 저장되었습니다! ✓', {
+      description: '소중한 추억이 안전하게 저장되었어요',
+      duration: 3000,
+    });
 
     // 2초 후 원래 상태로 복구
     setTimeout(() => {
       saveComplete.value = false;
     }, 2000);
-  } catch (error) {
+  } catch (error: any) {
     console.error('저장 실패:', error);
+
+    // 에러 유형에 따른 토스트 메시지 표시
+    if (error.response?.status === 401) {
+      toast.error('로그인이 필요합니다', {
+        description: '다시 로그인해주세요',
+      });
+    } else if (error.response?.status === 403) {
+      toast.error('접근 권한이 없습니다', {
+        description: '여행 참여자만 기록을 저장할 수 있습니다',
+      });
+    } else if (error.response?.status === 404) {
+      toast.error('여행을 찾을 수 없습니다', {
+        description: '여행 정보를 확인해주세요',
+      });
+    } else if (error.response?.status >= 500) {
+      toast.error('서버에 일시적인 문제가 발생했습니다', {
+        description: '잠시 후 다시 시도해주세요',
+      });
+    } else if (error.response?.data?.message) {
+      toast.error('저장에 실패했습니다', {
+        description: error.response.data.message,
+      });
+    } else if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+      toast.error('네트워크 오류가 발생했습니다', {
+        description: '인터넷 연결을 확인하고 다시 시도해주세요',
+      });
+    } else {
+      toast.error('저장에 실패했습니다', {
+        description: '여행 기록 저장 중 오류가 발생했습니다. 다시 시도해주세요.',
+      });
+    }
   }
 };
 

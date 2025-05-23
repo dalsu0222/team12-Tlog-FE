@@ -125,7 +125,7 @@ const handleNavigate = (tripId: number, isCompleted: boolean) => {
 
                 <Button
                   size="sm"
-                  @click="handleNavigate(story.id, story.isStep2Completed)"
+                  @click="handleNavigate(story.tripId || story.id, story.isStep2Completed)"
                   :variant="story.isStep2Completed ? 'outline' : 'default'"
                 >
                   {{ story.isStep2Completed ? '후기 보기' : '후기 작성' }}

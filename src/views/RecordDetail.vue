@@ -38,6 +38,11 @@ interface MemoRecord {
   date: Date;
 }
 
+interface SaveCallbacks {
+  onSuccess?: (data: any) => void;
+  onError?: (error: any) => void;
+}
+
 const route = useRoute();
 const tripId = computed(() => route.params.id as string);
 const tripDetail = ref<TripRecordDetail | null>(null);
@@ -95,7 +100,7 @@ const handleStorySaved = (content: string) => {
   console.log('AI 스토리가 저장되었습니다.');
 };
 
-const handleSaveMemos = async (memoRecords: MemoRecord[]) => {
+const handleSaveMemos = async (memoRecords: MemoRecord[], callbacks?: SaveCallbacks) => {
   if (!tripDetail.value) return;
 
   try {
@@ -112,7 +117,7 @@ const handleSaveMemos = async (memoRecords: MemoRecord[]) => {
 
     console.log('저장할 데이터:', requestData);
 
-    await api.post(`/api/trips/${tripId.value}/record/save`, requestData);
+    const response = await api.post(`/api/trips/${tripId.value}/record/save`, requestData);
 
     // 성공시 로컬 데이터 업데이트
     if (tripDetail.value) {
@@ -141,9 +146,20 @@ const handleSaveMemos = async (memoRecords: MemoRecord[]) => {
     }
 
     console.log('여행 기록 저장 완료');
+
+    // 성공 콜백 호출
+    if (callbacks?.onSuccess) {
+      callbacks.onSuccess(response.data);
+    }
   } catch (err) {
     console.error('여행 기록 저장 실패:', err);
-    throw err; // TripPlanAccordion에서 catch할 수 있도록
+
+    // 에러 콜백 호출
+    if (callbacks?.onError) {
+      callbacks.onError(err);
+    } else {
+      throw err; // 콜백이 없으면 예외를 다시 던짐
+    }
   } finally {
     isSavingMemos.value = false;
   }

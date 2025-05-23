@@ -424,9 +424,6 @@ const hasChanges = computed(() => {
 
                   <!-- 재생성 Dialog -->
                   <Dialog v-model:open="isRegenerateDialogOpen">
-                    <DialogTrigger asChild>
-                      <!-- 이미 위에서 Button을 사용하므로 여기서는 필요 없음 -->
-                    </DialogTrigger>
                     <DialogContent class="sm:max-w-md">
                       <DialogHeader>
                         <DialogTitle class="flex items-center gap-2">
@@ -593,10 +590,9 @@ const hasChanges = computed(() => {
             </div>
             <!-- 읽기 모드 -->
             <div v-else>
-              <div
-                v-html="editableContent?.replace(/\n/g, '<br>')"
-                class="leading-relaxed whitespace-pre-wrap text-gray-700"
-              ></div>
+              <div class="leading-relaxed whitespace-pre-wrap text-gray-700">
+                {{ editableContent }}
+              </div>
             </div>
           </div>
         </div>
