@@ -316,8 +316,8 @@ const hasChanges = computed(() => {
   <AccordionItem value="step2" class="mb-4 overflow-hidden rounded-lg bg-blue-50">
     <AccordionTrigger class="px-4 py-3 hover:no-underline">
       <div class="flex items-center">
-        <span class="font-medium text-blue-800">Step 2</span>
-        <span class="ml-4 font-medium">AI 여행 스토리 요약</span>
+        <span class="text-lg font-semibold text-blue-800">Step 2</span>
+        <span class="ml-4 text-lg font-medium">AI 여행 스토리 요약</span>
       </div>
     </AccordionTrigger>
     <AccordionContent class="px-4 pb-4">

@@ -171,7 +171,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-screen-xl bg-gray-50 px-4 py-8">
+  <div class="mx-auto h-full max-w-screen-xl px-4 py-8">
     <!-- Loading -->
     <div v-if="isLoading" class="flex h-64 items-center justify-center">
       <div
