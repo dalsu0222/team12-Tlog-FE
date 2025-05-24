@@ -171,20 +171,22 @@ function getPreviewImageForDay(day: number): string {
   return accommodation?.photoUrl || '';
 }
 
+function truncateName(name: string, maxLength = 12): string {
+  return name.length > maxLength ? name.substring(0, maxLength) + '...' : name;
+}
+
 function getPreviewNameForDay(day: number): string {
   // 현재 선택하려는 숙소가 해당 일차에 선택되었다면 그 숙소의 이름
   if (props.place && isDaySelected(day)) {
     const name = props.place.name;
-    return name.length > 12 ? name.substring(0, 12) + '...' : name;
+    return truncateName(name);
   }
 
   // 아니면 기존에 배정된 숙소의 이름
   const accommodation = planStore.dayPlans[day]?.accommodation;
   if (!accommodation) return '';
 
-  return accommodation.name.length > 12
-    ? accommodation.name.substring(0, 12) + '...'
-    : accommodation.name;
+  return truncateName(accommodation.name);
 }
 
 function shouldShowAccommodationPreview(day: number): boolean {
