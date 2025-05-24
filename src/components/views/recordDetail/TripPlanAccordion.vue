@@ -249,8 +249,8 @@ onMounted(() => {
   <AccordionItem value="step1" class="mb-4 overflow-hidden rounded-lg bg-blue-50">
     <AccordionTrigger class="px-4 py-3 hover:no-underline">
       <div class="flex items-center">
-        <span class="font-medium text-blue-800">Step 1</span>
-        <span class="ml-4 font-medium">여행 리마인드</span>
+        <span class="text-lg font-semibold text-blue-800">Step 1</span>
+        <span class="ml-4 text-lg font-medium">여행 리마인드</span>
       </div>
     </AccordionTrigger>
     <AccordionContent class="px-4 pb-4">
@@ -263,7 +263,7 @@ onMounted(() => {
       <div v-else class="space-y-6">
         <!-- Progress Indicator -->
         <div class="mb-4 flex items-center justify-center space-x-4">
-          <div class="text-sm text-gray-500">
+          <div class="text-base text-gray-500">
             Day {{ currentVisibleRange.start
             }}{{
               currentVisibleRange.end > currentVisibleRange.start

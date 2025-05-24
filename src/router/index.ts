@@ -60,6 +60,20 @@ const router = createRouter({
       name: 'plan',
       component: () => import('@/views/PlanView.vue'),
     },
+    {
+      path: '/test',
+      name: 'test',
+      component: () => import('@/views/TestView.vue'),
+    },
+    // 도시 정보와 함께 여행 계획 페이지로 이동
+    {
+      path: '/plan/:cityId/:cityEn/:cityKo',
+      name: 'plan-with-city',
+      component: () => import('@/views/PlanView.vue'),
+      props: true,
+      meta: { requiresAuth: true }, // 로그인 필요
+    },
+
   ],
 });
 
