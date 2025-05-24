@@ -82,8 +82,8 @@
         <!-- 확인 버튼 -->
         <Button
           class="bg-bold hover:bg-bold w-full py-6 text-white"
-          @click="confirmSelection"
           :disabled="selectedDays.length === 0"
+          @click="confirmSelection"
         >
           완료 ({{ selectedDays.length }}일 선택됨)
         </Button>
@@ -224,9 +224,7 @@ function getDialogClass(): string {
 function getGridClass(): string {
   const dayCount = travelDays.value.length;
 
-  if (dayCount <= 3) {
-    return 'grid-cols-3';
-  } else if (dayCount <= 6) {
+  if (dayCount <= 6) {
     return 'grid-cols-3';
   } else if (dayCount <= 8) {
     return 'grid-cols-4';
