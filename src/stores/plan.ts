@@ -1,9 +1,17 @@
+// stores/plan.ts
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
 
 interface DateRange {
   start: Date | null;
   end: Date | null;
+}
+
+// DayPlan 타입 정의를 store로 이동
+export interface DayPlan {
+  accommodation?: PlaceResult;
+  places: PlaceResult[];
 }
 
 export const usePlanStore = defineStore('plan', () => {
@@ -19,6 +27,9 @@ export const usePlanStore = defineStore('plan', () => {
   // Drawer 관리
   const drawerOpen = ref(true);
   const showDrawerContent = ref(true);
+
+  // 여행 계획 데이터 - 각 일차별 장소들
+  const dayPlans = ref<Record<number, DayPlan>>({});
 
   // Step 1: 날짜 설정
   const selectedDateRange = ref<DateRange>({
@@ -61,6 +72,26 @@ export const usePlanStore = defineStore('plan', () => {
     return Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
   });
 
+  // 숙소만 있는 일차들
+  const accommodationDays = computed(() => {
+    return Object.entries(dayPlans.value)
+      .filter(([_, plan]) => plan.accommodation)
+      .map(([day, plan]) => ({
+        day: Number(day),
+        accommodation: plan.accommodation!,
+      }));
+  });
+
+  // 일반 장소들이 있는 일차들
+  const placeDays = computed(() => {
+    return Object.entries(dayPlans.value)
+      .filter(([_, plan]) => plan.places.length > 0)
+      .map(([day, plan]) => ({
+        day: Number(day),
+        places: plan.places,
+      }));
+  });
+
   // Actions
   const setCurrentStep = (step: number) => {
     currentStep.value = step;
@@ -78,6 +109,66 @@ export const usePlanStore = defineStore('plan', () => {
 
   const setDateRange = (range: DateRange) => {
     selectedDateRange.value = range;
+  };
+
+  // DayPlans 관련 액션들
+  const initializeDayPlans = () => {
+    const travelDays = getTravelDays.value;
+    for (let day = 1; day <= travelDays; day++) {
+      if (!dayPlans.value[day]) {
+        dayPlans.value[day] = {
+          accommodation: undefined,
+          places: [],
+        };
+      }
+    }
+
+    // 여행 일수보다 긴 day는 삭제
+    for (const key of Object.keys(dayPlans.value)) {
+      const day = Number(key);
+      if (day > travelDays) {
+        delete dayPlans.value[day];
+      }
+    }
+  };
+
+  const addAccommodationToDay = (day: number, place: PlaceResult) => {
+    if (!dayPlans.value[day]) {
+      dayPlans.value[day] = { accommodation: undefined, places: [] };
+    }
+    dayPlans.value[day].accommodation = place;
+  };
+
+  const addPlaceToDay = (day: number, place: PlaceResult) => {
+    if (!dayPlans.value[day]) {
+      dayPlans.value[day] = { accommodation: undefined, places: [] };
+    }
+    dayPlans.value[day].places.push(place);
+  };
+
+  const removePlaceFromDay = (day: number, placeId: string) => {
+    if (!dayPlans.value[day]) return;
+
+    // 숙소 삭제 확인
+    if (dayPlans.value[day].accommodation?.placeId === placeId) {
+      dayPlans.value[day].accommodation = undefined;
+      return;
+    }
+
+    // 일반 장소 삭제
+    dayPlans.value[day].places = dayPlans.value[day].places.filter(p => p.placeId !== placeId);
+  };
+
+  const hasAccommodationForDay = (day: number): boolean => {
+    return dayPlans.value[day]?.accommodation !== undefined;
+  };
+
+  const isPlaceAlreadyPlanned = (placeId: string): boolean => {
+    return Object.values(dayPlans.value).some(
+      dayPlan =>
+        dayPlan.accommodation?.placeId === placeId ||
+        dayPlan.places.some(p => p.placeId === placeId)
+    );
   };
 
   const addFriend = (email: string) => {
@@ -116,6 +207,7 @@ export const usePlanStore = defineStore('plan', () => {
     steps,
     drawerOpen,
     showDrawerContent,
+    dayPlans,
     selectedDateRange,
     tempDateRange,
     showDatePicker,
@@ -129,12 +221,20 @@ export const usePlanStore = defineStore('plan', () => {
     // Computed
     isDrawerVisible,
     getTravelDays,
+    accommodationDays,
+    placeDays,
 
     // Actions
     setCurrentStep,
     nextStep,
     toggleDrawer,
     setDateRange,
+    initializeDayPlans,
+    addAccommodationToDay,
+    addPlaceToDay,
+    removePlaceFromDay,
+    hasAccommodationForDay,
+    isPlaceAlreadyPlanned,
     addFriend,
     removeFriend,
     updateAccommodationSettings,

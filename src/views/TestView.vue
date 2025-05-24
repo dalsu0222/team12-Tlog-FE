@@ -9,42 +9,16 @@
       <div class="relative w-[400px] overflow-y-auto bg-white p-8">
         <Step1DateSetting v-if="planStore.currentStep === 1" />
         <Step2FriendInvite v-else-if="planStore.currentStep === 2" />
-        <Step3AccommodationSetting v-else-if="planStore.currentStep === 3" />
-        <Step4PlaceSearch v-else-if="planStore.currentStep === 4" />
-
-        <!-- Day별 선택된 장소 목록 (Step 3, 4에서만 표시) -->
-        <div v-if="planStore.currentStep >= 3" class="mt-6">
-          <h3 class="mb-3 text-lg font-semibold">선택한 장소</h3>
-          <ScrollArea class="h-[300px]">
-            <div v-for="day in Object.keys(dayPlans).map(Number)" :key="day" class="mb-4">
-              <div class="mb-2 text-sm font-medium">{{ day }}일차</div>
-              <ul class="space-y-2">
-                <li
-                  v-for="(place, index) in dayPlans[day]"
-                  :key="place.placeId"
-                  class="flex items-center justify-between rounded-md border p-2 text-sm"
-                >
-                  <div @click="handlePlaceClick(place)" class="flex-1 cursor-pointer">
-                    <div class="font-medium">{{ index + 1 }}. {{ place.name }}</div>
-                    <div class="text-xs text-gray-500">{{ place.address }}</div>
-                  </div>
-                  <button
-                    @click="removePlaceFromDay(day, place.placeId)"
-                    class="ml-2 rounded-full p-1 hover:bg-gray-100"
-                  >
-                    <XIcon class="h-4 w-4 text-gray-400 hover:text-red-500" />
-                  </button>
-                </li>
-              </ul>
-            </div>
-            <div
-              v-if="!Object.keys(dayPlans).length || !Object.values(dayPlans).flat().length"
-              class="py-8 text-center text-gray-400"
-            >
-              아직 선택된 장소가 없습니다
-            </div>
-          </ScrollArea>
-        </div>
+        <Step3AccommodationSetting
+          v-else-if="planStore.currentStep === 3"
+          @accommodation-click="handlePlaceClick"
+          @remove-accommodation="handleRemovePlace"
+        />
+        <Step4PlaceSearch
+          v-else-if="planStore.currentStep === 4"
+          @place-click="handlePlaceClick"
+          @remove-place="handleRemovePlace"
+        />
       </div>
 
       <!-- Drawer + 토글 버튼 (Step 3, 4에서만 표시) -->
@@ -77,7 +51,7 @@
                   <input
                     v-model="accommodationQuery"
                     type="text"
-                    placeholder="숙소명, 키워드 입력..."
+                    placeholder="지역명, 숙소명 입력..."
                     class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                     @keyup.enter="searchAccommodations"
                   />
@@ -87,8 +61,29 @@
                 </div>
               </div>
 
+              <!-- 숙소 타입 필터 -->
+              <div class="mb-4">
+                <label class="mb-2 block text-sm font-medium">숙소 타입</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <div
+                    v-for="accommodationType in accommodationTypes"
+                    :key="accommodationType.value"
+                    class="cursor-pointer rounded-lg border p-2 text-center text-xs transition-all hover:border-blue-300"
+                    :class="{
+                      'border-blue-500 bg-blue-50 text-blue-700':
+                        selectedAccommodationType === accommodationType.value,
+                      'border-gray-200': selectedAccommodationType !== accommodationType.value,
+                    }"
+                    @click="selectAccommodationType(accommodationType.value)"
+                  >
+                    <div class="mb-1">{{ accommodationType.icon }}</div>
+                    <div>{{ accommodationType.label }}</div>
+                  </div>
+                </div>
+              </div>
+
               <!-- 숙소 검색 결과 -->
-              <ScrollArea class="h-[calc(100vh-250px)]">
+              <ScrollArea class="h-[calc(100vh-350px)]">
                 <div v-if="isLoading" class="py-8 text-center text-gray-400">검색 중입니다...</div>
                 <div
                   v-else-if="accommodationPlaces.length === 0"
@@ -98,12 +93,13 @@
                 </div>
                 <div v-else>
                   <h4 class="mb-3 text-sm font-medium text-gray-500">
-                    {{ accommodationQuery ? '검색 결과' : '추천 숙소' }}
+                    {{ getAccommodationResultTitle() }}
                   </h4>
                   <div
                     v-for="place in accommodationPlaces"
                     :key="place.placeId"
-                    class="mb-3 rounded-lg border p-3 hover:bg-gray-50"
+                    class="mb-3 cursor-pointer rounded-lg border p-3 hover:bg-gray-50"
+                    @click="handlePlaceClick(place)"
                   >
                     <div class="flex items-start gap-3">
                       <img
@@ -112,18 +108,37 @@
                         alt="숙소 이미지"
                         class="h-16 w-16 rounded object-cover"
                       />
-                      <div class="flex-1">
+                      <div class="flex-1 cursor-pointer">
                         <h4 class="font-medium">{{ place.name }}</h4>
                         <p class="text-xs text-gray-600">{{ place.address }}</p>
+                        <!-- 평점 정보 추가 -->
+                        <div v-if="place.rating" class="mt-1 flex items-center gap-2 text-xs">
+                          <span class="flex items-center gap-1 text-yellow-500">
+                            <span>⭐</span>
+                            <span>{{ place.rating.toFixed(1) }}</span>
+                          </span>
+                          <span v-if="place.userRatingsTotal" class="text-gray-400">
+                            ({{ place.userRatingsTotal }}개 리뷰)
+                          </span>
+                          <span
+                            v-if="place.priceLevel !== undefined"
+                            class="font-medium text-blue-600"
+                          >
+                            {{ getPriceLevelText(place.priceLevel) }}
+                          </span>
+                        </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        @click="openDaySelectModal(place)"
-                        title="일정에 추가"
-                      >
-                        <PlusIcon class="h-4 w-4" />
-                      </Button>
+                      <div class="flex h-full items-center self-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          @click="openDaySelectModal(place)"
+                          title="일정에 추가"
+                          class="px-2 py-8"
+                        >
+                          <PlusIcon class="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -141,7 +156,7 @@
                   <input
                     v-model="query"
                     type="text"
-                    placeholder="장소명, 키워드 입력..."
+                    placeholder="장소명, 지역명, 키워드 입력..."
                     class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                     @keyup.enter="searchPlacesWithCity"
                   />
@@ -179,18 +194,13 @@
                 </div>
                 <div v-else>
                   <h4 class="mb-3 text-sm font-medium text-gray-500">
-                    {{
-                      query && selectedCategory
-                        ? '검색 결과'
-                        : selectedCategory
-                          ? `${cityName} ${categories.find(c => c.value === selectedCategory)?.label}`
-                          : '인기 관광지'
-                    }}
+                    {{ getAttractionResultTitle() }}
                   </h4>
                   <div
                     v-for="place in places"
                     :key="place.placeId"
-                    class="mb-3 rounded-lg border p-3 hover:bg-gray-50"
+                    class="mb-3 cursor-pointer rounded-lg border p-3 hover:bg-gray-50"
+                    @click="handlePlaceClick(place)"
                   >
                     <div class="flex items-start gap-3">
                       <img
@@ -199,9 +209,25 @@
                         alt="장소 이미지"
                         class="h-16 w-16 rounded object-cover"
                       />
-                      <div class="flex-1">
+                      <div class="flex-1 cursor-pointer">
                         <h4 class="font-medium">{{ place.name }}</h4>
                         <p class="text-xs text-gray-600">{{ place.address }}</p>
+                        <!-- 평점 정보 추가 -->
+                        <div v-if="place.rating" class="mt-1 flex items-center gap-2 text-xs">
+                          <span class="flex items-center gap-1 text-yellow-500">
+                            <span>⭐</span>
+                            <span>{{ place.rating.toFixed(1) }}</span>
+                          </span>
+                          <span v-if="place.userRatingsTotal" class="text-gray-400">
+                            ({{ place.userRatingsTotal }}개 리뷰)
+                          </span>
+                          <span
+                            v-if="place.priceLevel !== undefined"
+                            class="font-medium text-blue-600"
+                          >
+                            {{ getPriceLevelText(place.priceLevel) }}
+                          </span>
+                        </div>
                       </div>
                       <Button
                         size="sm"
@@ -228,7 +254,7 @@
         <button
           class="absolute left-0 h-10 rounded-r-md bg-white px-2 py-2 text-gray-400"
           @click="planStore.toggleDrawer()"
-          style="z-index: 51"
+          style="z-index: 11"
         >
           <ChevronLeft v-if="planStore.drawerOpen" class="h-5 w-5" />
           <ChevronRight v-else class="h-5 w-5" />
@@ -246,17 +272,51 @@
   <Dialog v-model:open="isModalOpen">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>어느 Day에 추가할까요?</DialogTitle>
+        <DialogTitle>
+          {{
+            selectedPlace && isAccommodationPlace(selectedPlace)
+              ? '숙소를 어느 Day에 추가할까요?'
+              : '어느 Day에 추가할까요?'
+          }}
+        </DialogTitle>
+        <p
+          v-if="selectedPlace && isAccommodationPlace(selectedPlace)"
+          class="text-sm text-orange-600"
+        >
+          ⚠️ 각 일차별로 숙소는 최대 1개만 선택할 수 있습니다.
+        </p>
       </DialogHeader>
 
       <div class="grid grid-cols-3 gap-2">
         <Button
           v-for="day in planStore.getTravelDays"
           :key="day"
-          variant="secondary"
+          :variant="
+            planStore.hasAccommodationForDay(day) &&
+            selectedPlace &&
+            isAccommodationPlace(selectedPlace)
+              ? 'outline'
+              : 'secondary'
+          "
+          :disabled="
+            planStore.hasAccommodationForDay(day) &&
+            selectedPlace &&
+            isAccommodationPlace(selectedPlace)
+          "
           @click="() => confirmDaySelection(day)"
+          class="relative"
         >
           Day {{ day }}
+          <span
+            v-if="
+              planStore.hasAccommodationForDay(day) &&
+              selectedPlace &&
+              isAccommodationPlace(selectedPlace)
+            "
+            class="absolute -top-1 -right-1 text-xs"
+          >
+            🏨
+          </span>
         </Button>
       </div>
 
@@ -270,8 +330,8 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, ref, reactive } from 'vue';
-import { ChevronLeft, ChevronRight, XIcon, PlusIcon } from 'lucide-vue-next';
+import { watch, onMounted, ref } from 'vue';
+import { ChevronLeft, ChevronRight, PlusIcon } from 'lucide-vue-next';
 import { usePlanStore } from '@/stores/plan';
 import { useRoute } from 'vue-router';
 import { usePlanMap, usePlaceSearch } from '@/composables/plan';
@@ -300,8 +360,7 @@ const planStore = usePlanStore();
 const route = useRoute();
 
 // 라우트 파라미터에서 cityId와 cityName 가져오기
-const cityId = ref((route.params.cityId as string) || '');
-const cityName = ref((route.params.cityName as string) || '서울'); // 기본값은 서울
+const cityName = ref((route.params.cityName as string) || '서울');
 
 // 1. 지도 초기화
 const { initMap, moveToLocation, addMarkerForDay, removeMarkerForDay, showMarkerForSearchClick } =
@@ -328,62 +387,70 @@ const categories = [
   { value: 'activity', label: '액티비티', icon: '🎢' },
 ];
 
-// 5. 여행 일 수 관리 - 각 일차별로 방문할 장소들을 저장하는 반응형 객체
-const dayPlans = reactive<Record<number, PlaceResult[]>>({});
+// 5. 숙소 타입 필터링 (Step 3용)
+const selectedAccommodationType = ref('');
+const accommodationTypes = [
+  { value: '', label: '전체', icon: '🏨' },
+  { value: 'hotel', label: '호텔', icon: '🏨' },
+  { value: 'motel', label: '모텔', icon: '🏩' },
+  { value: 'pension', label: '펜션', icon: '🏡' },
+  { value: 'guesthouse', label: '게스트하우스', icon: '🏠' },
+  { value: 'resort', label: '리조트', icon: '🏖️' },
+  { value: 'hostel', label: '호스텔', icon: '🛏️' },
+];
+
+// 6. 모달 관련 상태
 const selectedPlace = ref<PlaceResult | null>(null);
 const isModalOpen = ref(false);
+
+// 숙소인지 확인하는 함수
+function isAccommodationPlace(place: PlaceResult): boolean {
+  if (!place.types) return false;
+  const accommodationTypes = ['lodging', 'hotel', 'motel', 'resort', 'campground', 'rv_park'];
+  return place.types.some(type => accommodationTypes.includes(type));
+}
+
+// 가격 레벨을 텍스트로 변환
+function getPriceLevelText(priceLevel?: number): string {
+  if (priceLevel === undefined) return '';
+  switch (priceLevel) {
+    case 0:
+      return '무료';
+    case 1:
+      return '₩';
+    case 2:
+      return '₩₩';
+    case 3:
+      return '₩₩₩';
+    case 4:
+      return '₩₩₩₩';
+    default:
+      return '';
+  }
+}
 
 // 지도 초기화 및 도시 위치로 이동
 onMounted(async () => {
   const map = await initMap();
 
-  // 초기 dayPlans 객체 설정 - 여행 일수에 맞게
-  watch(
-    () => planStore.getTravelDays,
-    newLen => {
-      // 기존 dayPlans에 없는 day만 초기화
-      for (let day = 1; day <= newLen; day++) {
-        if (!dayPlans[day]) {
-          dayPlans[day] = [];
-        }
-      }
-
-      // getTravelDays보다 긴 day는 삭제
-      for (const key of Object.keys(dayPlans)) {
-        const day = Number(key);
-        if (day > newLen) {
-          delete dayPlans[day];
-        }
-      }
-    },
-    { immediate: true }
-  );
-
   // cityName을 기반으로 위치 검색 및 이동
   if (cityName.value) {
     try {
-      // Geocoder 로드
       const { Geocoder } = (await google.maps.importLibrary(
         'geocoding'
       )) as google.maps.GeocodingLibrary;
       const geocoder = new Geocoder();
 
-      // cityName을 좌표로 변환
       const response = await geocoder.geocode({
-        address: cityName.value + ', South Korea', // 한국 내 도시로 가정
+        address: cityName.value + ', South Korea',
         region: 'kr',
       });
 
       if (response.results.length > 0) {
         const location = response.results[0].geometry.location;
         moveToLocation(location);
+        if (map) map.setZoom(12);
 
-        // 지도 줌 레벨 설정
-        if (map) {
-          map.setZoom(12); // 도시 레벨 줌
-        }
-
-        // 기본 검색 결과 로드 (숙소와 관광지)
         loadDefaultAccommodations();
         loadDefaultAttractions();
       }
@@ -393,32 +460,155 @@ onMounted(async () => {
   }
 });
 
-// 숙소 전용 검색 함수
-async function searchAccommodationsOnly(searchQuery = '') {
-  isLoading.value = true;
+// Watch for travel days changes to initialize dayPlans
+watch(
+  () => planStore.getTravelDays,
+  () => {
+    planStore.initializeDayPlans();
+  },
+  { immediate: true }
+);
 
+// 카테고리에 따른 검색 키워드 매핑
+function getCategorySearchKeywords(category: string): string {
+  const keywordMap: Record<string, string> = {
+    tourist: '관광지 명소',
+    restaurant: '맛집 음식점',
+    cafe: '카페',
+    shopping: '쇼핑 쇼핑몰',
+    culture: '문화시설 박물관',
+    nature: '자연 공원',
+    activity: '액티비티 놀거리',
+  };
+  return keywordMap[category] || '인기 관광지';
+}
+
+// 관광지 전용 검색 함수
+async function searchPlacesOnly(searchQuery = '', category = '') {
+  isLoading.value = true;
   try {
     const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary;
-
-    // 숙소 관련 키워드 추가
+    const categoryKeywords = category ? getCategorySearchKeywords(category) : '인기 관광지';
     const baseQuery = searchQuery ? `${cityName.value} ${searchQuery}` : `${cityName.value}`;
 
     const request = {
-      textQuery: `${baseQuery} 숙박 호텔 숙소`,
-      fields: ['displayName', 'location', 'formattedAddress', 'photos'],
+      textQuery: `${baseQuery} ${categoryKeywords}`,
+      fields: [
+        'displayName',
+        'location',
+        'formattedAddress',
+        'photos',
+        'rating',
+        'userRatingCount',
+        'priceLevel',
+        'businessStatus',
+        'types',
+        'editorialSummary',
+        'nationalPhoneNumber',
+        'websiteURI',
+        'regularOpeningHours',
+      ],
       region: 'kr',
       maxResultCount: 20,
       language: 'ko',
     };
 
     const response = await Place.searchByText(request);
+    places.value = (response?.places || []).map(p => ({
+      placeId: p.id ?? '',
+      name: p.displayName ?? '',
+      address: p.formattedAddress ?? '',
+      photoUrl: p.photos?.[0]?.getURI?.() ?? '',
+      location: p.location ?? new google.maps.LatLng(0, 0),
+      rating: p.rating || undefined,
+      userRatingsTotal: p.userRatingCount || undefined,
+      priceLevel: p.priceLevel ? Number(p.priceLevel) : undefined,
+      businessStatus: p.businessStatus || undefined,
+      types: p.types || undefined,
+      description:
+        p.editorialSummary || `${cityName.value}에서 꼭 방문해보시길 추천하는 장소입니다.`,
+      phoneNumber: p.nationalPhoneNumber || undefined,
+      website: p.websiteURI || undefined,
+      openingHours: p.regularOpeningHours
+        ? {
+            isOpen: p.regularOpeningHours.periods ? true : false,
+            periods: p.regularOpeningHours.periods || undefined,
+          }
+        : undefined,
+    }));
+  } catch (error) {
+    console.error('장소 검색 오류:', error);
+    places.value = [];
+  } finally {
+    isLoading.value = false;
+  }
+}
 
+function getAccommodationSearchKeywords(type: string): string {
+  const keywordMap: Record<string, string> = {
+    hotel: '호텔',
+    motel: '모텔',
+    pension: '펜션',
+    guesthouse: '게스트하우스 민박',
+    resort: '리조트',
+    hostel: '호스텔',
+  };
+  return keywordMap[type] || '숙박 숙소';
+}
+
+// 숙소 전용 검색 함수
+async function searchAccommodationsOnly(searchQuery = '', accommodationType = '') {
+  isLoading.value = true;
+  try {
+    const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary;
+    const typeKeywords = accommodationType
+      ? getAccommodationSearchKeywords(accommodationType)
+      : '숙박 숙소';
+    const baseQuery = searchQuery ? `${cityName.value} ${searchQuery}` : `${cityName.value}`;
+
+    const request = {
+      textQuery: `${baseQuery} ${typeKeywords}`,
+      fields: [
+        'displayName',
+        'location',
+        'formattedAddress',
+        'photos',
+        'rating',
+        'userRatingCount',
+        'priceLevel',
+        'businessStatus',
+        'types',
+        'editorialSummary',
+        'nationalPhoneNumber',
+        'websiteURI',
+        'regularOpeningHours',
+      ],
+      region: 'kr',
+      maxResultCount: 20,
+      language: 'ko',
+    };
+
+    const response = await Place.searchByText(request);
     accommodationPlaces.value = (response?.places || []).map(p => ({
       placeId: p.id ?? '',
       name: p.displayName ?? '',
       address: p.formattedAddress ?? '',
       photoUrl: p.photos?.[0]?.getURI?.() ?? '',
       location: p.location ?? new google.maps.LatLng(0, 0),
+      rating: p.rating || undefined,
+      userRatingsTotal: p.userRatingCount || undefined,
+      priceLevel: p.priceLevel ? Number(p.priceLevel) : undefined,
+      businessStatus: p.businessStatus || undefined,
+      types: p.types || undefined,
+      description: p.editorialSummary || '편안한 숙박을 위한 최적의 장소입니다.',
+      phoneNumber: p.nationalPhoneNumber || undefined,
+      website: p.websiteURI || undefined,
+      openingHours: p.regularOpeningHours
+        ? {
+            isOpen: p.regularOpeningHours.periods ? true : false,
+            periods: p.regularOpeningHours.periods || undefined,
+          }
+        : undefined,
     }));
   } catch (error) {
     console.error('숙소 검색 오류:', error);
@@ -428,135 +618,145 @@ async function searchAccommodationsOnly(searchQuery = '') {
   }
 }
 
-// 기본 숙소 검색 결과 로드
+// 기본 검색 결과 로드 함수들
 async function loadDefaultAccommodations() {
-  await searchAccommodationsOnly();
+  await searchAccommodationsOnly('', selectedAccommodationType.value);
 }
 
-// 기본 관광지 검색 결과 로드
 async function loadDefaultAttractions() {
-  // 기본 관광지 검색
-  const searchText = `${cityName.value} 인기 관광지`;
-  query.value = searchText;
-  await searchPlaces();
+  await searchPlacesOnly('', selectedCategory.value);
 }
 
-// 숙소 검색 - 지정된 도시로 쿼리 보강
+// 숙소 타입/카테고리 선택 함수들
+async function selectAccommodationType(type: string) {
+  selectedAccommodationType.value = type;
+  if (accommodationQuery.value.trim()) {
+    await searchAccommodations();
+  } else {
+    await searchAccommodationsOnly('', type);
+  }
+}
+
+async function selectCategory(category: string) {
+  selectedCategory.value = category;
+  if (query.value.trim()) {
+    await searchPlacesWithCity();
+  } else {
+    await searchPlacesOnly('', category);
+  }
+}
+
+// 검색 함수들
 async function searchAccommodations() {
   if (!accommodationQuery.value.trim()) {
-    // 빈 검색어인 경우 기본 검색 결과 다시 로드
     await loadDefaultAccommodations();
     return;
   }
-
   hasSearched.value = true;
-  await searchAccommodationsOnly(accommodationQuery.value);
+  await searchAccommodationsOnly(accommodationQuery.value, selectedAccommodationType.value);
 }
 
-// 장소 검색 - 지정된 도시로 쿼리 보강
 async function searchPlacesWithCity() {
   if (!query.value.trim()) {
-    // 빈 검색어인 경우 카테고리 기반 검색
-    if (selectedCategory.value) {
-      const category = categories.find(c => c.value === selectedCategory.value)?.label || '';
-      query.value = `${cityName.value} ${category}`;
-      await searchPlaces();
-    } else {
-      // 카테고리도 없는 경우 기본 검색 결과 다시 로드
-      loadDefaultAttractions();
-    }
+    await loadDefaultAttractions();
     return;
   }
-
   hasSearched.value = true;
-
-  // 카테고리가 있으면 쿼리에 추가
-  const category = selectedCategory.value
-    ? categories.find(c => c.value === selectedCategory.value)?.label
-    : '';
-
-  // query에 도시명 추가
-  const searchText = `${cityName.value} ${query.value} ${category || ''}`.trim();
-
-  // 원래 query 값 저장
-  const originalQuery = query.value;
-
-  // 임시로 query 값 변경하고 검색
-  query.value = searchText;
-  await searchPlaces();
-
-  // 원래 query 값 복원
-  query.value = originalQuery;
+  await searchPlacesOnly(query.value, selectedCategory.value);
 }
 
-// 카테고리 선택
-async function selectCategory(category: string) {
-  selectedCategory.value = category;
-
-  if (!category) {
-    // 전체 카테고리 선택 시 기본 검색 결과 로드
-    loadDefaultAttractions();
-    return;
+// 결과 제목 생성 함수들
+function getAccommodationResultTitle(): string {
+  if (accommodationQuery.value.trim() && selectedAccommodationType.value) {
+    const typeLabel = accommodationTypes.find(
+      t => t.value === selectedAccommodationType.value
+    )?.label;
+    return `${typeLabel} 검색 결과`;
+  } else if (accommodationQuery.value.trim()) {
+    return '검색 결과';
+  } else if (selectedAccommodationType.value) {
+    const typeLabel = accommodationTypes.find(
+      t => t.value === selectedAccommodationType.value
+    )?.label;
+    return `${cityName.value} ${typeLabel}`;
+  } else {
+    return '추천 숙소';
   }
-
-  // 카테고리만으로 검색
-  const categoryLabel = categories.find(c => c.value === category)?.label || '';
-  query.value = `${cityName.value} ${categoryLabel}`;
-  await searchPlaces();
 }
 
-// 사용자가 장소를 클릭하면 해당 위치로 지도를 이동하고 마커를 표시
+function getAttractionResultTitle(): string {
+  if (query.value.trim() && selectedCategory.value) {
+    const categoryLabel = categories.find(c => c.value === selectedCategory.value)?.label;
+    return `${categoryLabel} 검색 결과`;
+  } else if (query.value.trim()) {
+    return '검색 결과';
+  } else if (selectedCategory.value) {
+    const categoryLabel = categories.find(c => c.value === selectedCategory.value)?.label;
+    return `${cityName.value} ${categoryLabel}`;
+  } else {
+    return '인기 관광지';
+  }
+}
+
+// 이벤트 핸들러들
 function handlePlaceClick(place: PlaceResult) {
   moveToLocation(place.location);
-  showMarkerForSearchClick(place, dayPlans);
+  showMarkerForSearchClick(place, planStore.dayPlans);
 }
 
-// 장소 삭제 - 특정 일차에서 선택한 장소를 삭제하고 해당 마커도 지도에서 제거
-function removePlaceFromDay(day: number, placeId: string) {
-  dayPlans[day] = dayPlans[day].filter(p => p.placeId !== placeId);
+function handleRemovePlace(day: number, placeId: string) {
+  planStore.removePlaceFromDay(day, placeId);
   removeMarkerForDay(day, placeId);
 }
 
-// 장소 추가 - 선택한 장소를 어느 일차에 추가할지 선택하는 모달 열기
 function openDaySelectModal(place: PlaceResult) {
   selectedPlace.value = place;
   isModalOpen.value = true;
 }
 
-// 장소 추가 확정 - 선택한 장소를 지정된 일차에 추가하고 지도에 마커를 표시
 function confirmDaySelection(day: number) {
   if (!selectedPlace.value) return;
 
   const place = selectedPlace.value;
 
-  if (!dayPlans[day]) dayPlans[day] = [];
-  dayPlans[day].push(place);
-
-  addMarkerForDay(day, place, dayPlans[day].length);
+  if (isAccommodationPlace(place)) {
+    if (planStore.hasAccommodationForDay(day)) {
+      if (confirm(`${day}일차에 이미 숙소가 있습니다. 교체하시겠습니까?`)) {
+        const existingAccommodation = planStore.dayPlans[day].accommodation;
+        if (existingAccommodation) {
+          removeMarkerForDay(day, existingAccommodation.placeId);
+        }
+        planStore.addAccommodationToDay(day, place);
+        addMarkerForDay(day, place, 'accommodation');
+      }
+    } else {
+      planStore.addAccommodationToDay(day, place);
+      addMarkerForDay(day, place, 'accommodation');
+    }
+  } else {
+    planStore.addPlaceToDay(day, place);
+    addMarkerForDay(day, place, planStore.dayPlans[day].places.length);
+  }
 
   selectedPlace.value = null;
   isModalOpen.value = false;
 }
 
-// Step 변경 시 drawer 상태 관리와 기본 검색 결과 로드
+// Step 변경 감지
 watch(
   () => planStore.currentStep,
   (newStep, oldStep) => {
     if (newStep >= 3 && oldStep < 3) {
-      // Step 3 이상으로 진입할 때 drawer 열기
       planStore.drawerOpen = true;
     } else if (newStep < 3) {
-      // Step 1, 2로 돌아갈 때 drawer 닫기
       planStore.drawerOpen = false;
       planStore.showDrawerContent = false;
     }
 
-    // Step 3으로 진입 시 숙소 검색 결과 로드
     if (newStep === 3 && accommodationPlaces.value.length === 0) {
       loadDefaultAccommodations();
     }
 
-    // Step 4로 진입 시 관광지 검색 결과 로드
     if (newStep === 4 && places.value.length === 0) {
       loadDefaultAttractions();
     }
