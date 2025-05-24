@@ -2,9 +2,10 @@
 import { Card, CardContent } from '@/components/ui/card';
 import FeatureCard from './FeatureCard.vue';
 import { MapPin, Sparkles } from 'lucide-vue-next';
+import type { Component } from 'vue';
 
 interface Feature {
-  icon: any;
+  icon: Component;
   title: string;
   description: string;
   details: string[];

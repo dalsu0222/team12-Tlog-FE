@@ -3,9 +3,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'vue-router';
 import FeaturePreview from './FeaturePreview.vue';
 import { ArrowRight } from 'lucide-vue-next';
+import type { Component } from 'vue';
 
 interface Feature {
-  icon: any;
+  icon: Component;
   title: string;
   description: string;
   details: string[];

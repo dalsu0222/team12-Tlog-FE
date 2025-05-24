@@ -17,7 +17,7 @@ interface CityDto {
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  'city-select': [cityInfo: CityDto | null]; // 타입 수정
+  'city-select': [cityInfo: CityDto]; // 타입 수정
   'create-plan': [];
 }>();
 
@@ -133,11 +133,10 @@ const scrollToFeatures = () => {
     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 transform sm:bottom-6 lg:bottom-3">
       <button
         @click="scrollToFeatures"
-        size="lg"
         class="group flex flex-col items-center gap-1 rounded-full px-4 py-3 text-gray-600 transition-all duration-300 hover:text-blue-600 sm:gap-2 sm:px-6 sm:py-4"
       >
         <span class="text-xs font-medium sm:text-sm">더 자세히 알아보기</span>
-        <div class="duration-300sm:p-2 rounded-full bg-white/80 p-1.5 shadow-sm transition-all">
+        <div class="rounded-full bg-white/80 p-1.5 shadow-sm transition-all duration-300 sm:p-2">
           <ChevronDown class="h-4 w-4 animate-bounce sm:h-5 sm:w-5" />
         </div>
       </button>
