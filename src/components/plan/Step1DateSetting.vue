@@ -6,13 +6,13 @@
     <!-- 선택된 날짜 표시 -->
     <div
       v-if="planStore.selectedDateRange.start && planStore.selectedDateRange.end"
-      class="mb-6 rounded-lg bg-blue-50 p-4"
+      class="bg-primary mb-6 rounded-lg p-4"
     >
       <h3 class="mb-2 font-semibold">선택된 여행 기간</h3>
       <div class="text-sm">
         <p>출발일: {{ planStore.formatDate(planStore.selectedDateRange.start) }}</p>
         <p>도착일: {{ planStore.formatDate(planStore.selectedDateRange.end) }}</p>
-        <p class="font-medium text-blue-600">총 {{ planStore.getTravelDays }}일</p>
+        <p class="text-bold-dark font-medium">총 {{ planStore.getTravelDays }}일</p>
       </div>
     </div>
 
@@ -101,8 +101,9 @@
         <div class="mt-4 flex justify-end gap-2">
           <Button variant="outline" @click="planStore.showDatePicker = false">취소</Button>
           <Button
-            @click="confirmDateSelection"
             :disabled="!planStore.tempDateRange.start || !planStore.tempDateRange.end"
+            class="bg-secondary hover:bg-bold"
+            @click="confirmDateSelection"
           >
             확인
           </Button>
@@ -245,7 +246,7 @@ const getDayClass = (day: CalendarDay) => {
   }
 
   if (day.isToday) {
-    classes.push('bg-blue-100', 'font-bold');
+    classes.push('bg-primary', 'font-bold');
   }
 
   // 10일 초과 날짜 비활성화
@@ -264,11 +265,11 @@ const getDayClass = (day: CalendarDay) => {
     const date = day.date;
     if (date >= planStore.tempDateRange.start && date <= planStore.tempDateRange.end) {
       if (date.getTime() === planStore.tempDateRange.start.getTime()) {
-        classes.push('bg-blue-500', 'text-white', 'rounded-l');
+        classes.push('bg-bold', 'text-white', 'rounded-l');
       } else if (date.getTime() === planStore.tempDateRange.end.getTime()) {
-        classes.push('bg-blue-500', 'text-white', 'rounded-r');
+        classes.push('bg-bold', 'text-white', 'rounded-r');
       } else {
-        classes.push('bg-blue-200');
+        classes.push('bg-primary');
       }
     }
   } else if (
@@ -276,7 +277,7 @@ const getDayClass = (day: CalendarDay) => {
     planStore.tempDateRange.start &&
     day.date.getTime() === planStore.tempDateRange.start.getTime()
   ) {
-    classes.push('bg-blue-500', 'text-white', 'rounded');
+    classes.push('bg-bold', 'text-white', 'rounded');
   }
 
   return classes.join(' ');

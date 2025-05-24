@@ -13,16 +13,16 @@
           <!-- 숙소 표시 -->
           <div v-if="dayPlans[day].accommodation" class="mb-2">
             <div
-              class="flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 p-2 text-sm"
+              class="border-secondary bg-secondary/10 flex items-center justify-between rounded-md border p-2 text-sm"
             >
               <div
-                @click="handleAccommodationClick(dayPlans[day].accommodation!)"
                 class="flex-1 cursor-pointer"
+                @click="handleAccommodationClick(dayPlans[day].accommodation!)"
               >
-                <div class="font-medium text-blue-700">
+                <div class="font-bold text-gray-800">
                   🏨 {{ dayPlans[day].accommodation!.name }}
                 </div>
-                <div class="text-xs text-blue-600">
+                <div class="text-xs font-bold text-gray-800">
                   {{ dayPlans[day].accommodation!.address }}
                 </div>
                 <div
@@ -37,10 +37,10 @@
                 </div>
               </div>
               <button
+                class="hover:bg-secondary/20 ml-2 rounded-full p-1"
                 @click="removeAccommodation(day, dayPlans[day].accommodation!.placeId)"
-                class="ml-2 rounded-full p-1 hover:bg-blue-100"
               >
-                <XIcon class="h-4 w-4 text-blue-400 hover:text-red-500" />
+                <XIcon class="text-secondary h-4 w-4 hover:text-red-500" />
               </button>
             </div>
           </div>

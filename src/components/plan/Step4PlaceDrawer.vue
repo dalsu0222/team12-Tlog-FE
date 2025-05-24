@@ -10,7 +10,7 @@
           v-model="query"
           type="text"
           placeholder="장소명, 지역명, 키워드 입력..."
-          class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          class="focus:border-bold focus:ring-bold flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
           @keyup.enter="searchPlacesWithCity"
         />
         <Button @click="searchPlacesWithCity" :disabled="isLoading">
@@ -25,9 +25,9 @@
         <div
           v-for="category in categories"
           :key="category.value"
-          class="cursor-pointer rounded-lg border p-2 text-center text-xs transition-all hover:border-blue-300"
+          class="hover:border-bold/50 cursor-pointer rounded-lg border p-2 text-center text-xs transition-all"
           :class="{
-            'border-blue-500 bg-blue-50 text-blue-700': selectedCategory === category.value,
+            'border-bold bg-primary text-bold': selectedCategory === category.value,
             'border-gray-200': selectedCategory !== category.value,
           }"
           @click="selectCategory(category.value)"
@@ -73,7 +73,7 @@
                 <span v-if="place.userRatingsTotal" class="text-gray-400">
                   ({{ place.userRatingsTotal }}개 리뷰)
                 </span>
-                <span v-if="place.priceLevel !== undefined" class="font-medium text-blue-600">
+                <span v-if="place.priceLevel !== undefined" class="text-bold font-medium">
                   {{ getPriceLevelText(place.priceLevel) }}
                 </span>
               </div>

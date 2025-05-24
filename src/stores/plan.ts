@@ -75,7 +75,7 @@ export const usePlanStore = defineStore('plan', () => {
   // 숙소만 있는 일차들
   const accommodationDays = computed(() => {
     return Object.entries(dayPlans.value)
-      .filter(([_, plan]) => plan.accommodation)
+      .filter(([, plan]) => plan.accommodation)
       .map(([day, plan]) => ({
         day: Number(day),
         accommodation: plan.accommodation!,
@@ -85,7 +85,7 @@ export const usePlanStore = defineStore('plan', () => {
   // 일반 장소들이 있는 일차들
   const placeDays = computed(() => {
     return Object.entries(dayPlans.value)
-      .filter(([_, plan]) => plan.places.length > 0)
+      .filter(([, plan]) => plan.places.length > 0)
       .map(([day, plan]) => ({
         day: Number(day),
         places: plan.places,

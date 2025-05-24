@@ -10,10 +10,10 @@
           v-model="accommodationQuery"
           type="text"
           placeholder="지역명, 숙소명 입력..."
-          class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          class="focus:border-bold-500 focus:ring-bold-500 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
           @keyup.enter="searchAccommodations"
         />
-        <Button @click="searchAccommodations" :disabled="isLoading">
+        <Button :disabled="isLoading" @click="searchAccommodations">
           {{ isLoading ? '검색 중...' : '검색' }}
         </Button>
       </div>
@@ -26,9 +26,9 @@
         <div
           v-for="accommodationType in accommodationTypes"
           :key="accommodationType.value"
-          class="cursor-pointer rounded-lg border p-2 text-center text-xs transition-all hover:border-blue-300"
+          class="hover:border-bold-300 cursor-pointer rounded-lg border p-2 text-center text-xs transition-all"
           :class="{
-            'border-blue-500 bg-blue-50 text-blue-700':
+            'border-bold bg-primary text-bold':
               selectedAccommodationType === accommodationType.value,
             'border-gray-200': selectedAccommodationType !== accommodationType.value,
           }"
@@ -75,7 +75,7 @@
                 <span v-if="place.userRatingsTotal" class="text-gray-400">
                   ({{ place.userRatingsTotal }}개 리뷰)
                 </span>
-                <span v-if="place.priceLevel !== undefined" class="font-medium text-blue-600">
+                <span v-if="place.priceLevel !== undefined" class="text-bold-600 font-medium">
                   {{ getPriceLevelText(place.priceLevel) }}
                 </span>
               </div>
@@ -209,7 +209,7 @@ async function searchAccommodationsOnly(searchQuery = '', accommodationType = ''
       priceLevel: p.priceLevel ? Number(p.priceLevel) : undefined,
       businessStatus: p.businessStatus || undefined,
       types: p.types || undefined,
-      description: p.editorialSummary || '편안한 숙박을 위한 최적의 장소입니다.',
+      description: p.editorialSummary || '',
       phoneNumber: p.nationalPhoneNumber || undefined,
       website: p.websiteURI || undefined,
       openingHours: p.regularOpeningHours

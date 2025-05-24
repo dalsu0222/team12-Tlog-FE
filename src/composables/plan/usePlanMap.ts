@@ -119,19 +119,16 @@ export function usePlanMap() {
   }
 
   // 풍부한 InfoWindow 콘텐츠 생성
-  function createRichInfoWindowContent(place: PlaceResult, isSearchResult = false): string {
-    const photoHTML = place.photoUrl
-      ? `<img src="${place.photoUrl}" alt="${place.name}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:12px;" />`
-      : '';
-
+  // 풍부한 InfoWindow 콘텐츠 생성 - 가로형 레이아웃
+  function createRichInfoWindowContent(place: PlaceResult): string {
     // 평점 표시
     const ratingHTML = place.rating
       ? `
-        <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
           <span style="color:#FFD700;font-size:16px;">★</span>
           <span style="font-weight:bold;color:#333;">${place.rating.toFixed(1)}</span>
-          ${place.userRatingsTotal ? `<span style="color:#666;font-size:12px;">(${place.userRatingsTotal}개 리뷰)</span>` : ''}
-          ${place.priceLevel !== undefined ? `<span style="margin-left:8px;color:#666;font-weight:bold;">${getPriceLevelText(place.priceLevel)}</span>` : ''}
+          ${place.userRatingsTotal ? `<span style="color:#666;font-size:12px;">(${place.userRatingsTotal}개)</span>` : ''}
+          ${place.priceLevel !== undefined ? `<span style="margin-left:8px;color:#1976D2;font-weight:bold;">${getPriceLevelText(place.priceLevel)}</span>` : ''}
         </div>
       `
       : '';
@@ -141,47 +138,20 @@ export function usePlanMap() {
     const isAccommodationPlace = isAccommodation(place.types);
 
     const typeHTML = placeTypeText
-      ? `<div style="display:inline-block;background:${isAccommodationPlace ? '#E8F5E8' : '#E3F2FD'};color:${isAccommodationPlace ? '#2E7D32' : '#1976D2'};padding:2px 8px;border-radius:12px;font-size:11px;margin-bottom:8px;">${placeTypeText}</div>`
+      ? `<div style="display:inline-block;background:${isAccommodationPlace ? '#E8F5E8' : '#E3F2FD'};color:${isAccommodationPlace ? '#2E7D32' : '#1976D2'};padding:3px 8px;border-radius:12px;font-size:11px;margin-bottom:8px;">${placeTypeText}</div>`
       : '';
 
-    // 설명 표시
-    const descriptionHTML = place.description
-      ? `<p style="color:#555;font-size:13px;line-height:1.4;margin:8px 0;">${place.description}</p>`
-      : '';
-
-    // 영업 상태 표시
-    const openStatusHTML = place.openingHours
-      ? `
-        <div style="margin:8px 0;">
-          <span style="color:${place.openingHours.isOpen ? '#4CAF50' : '#F44336'};font-size:12px;font-weight:bold;">
-            ${place.openingHours.isOpen ? '🟢 영업 중' : '🔴 영업 종료'}
-          </span>
-        </div>
-      `
-      : '';
-
-    // 숙소용 추가 정보 (체크인/체크아웃 시간 등은 실제 데이터가 있을 때 표시)
-    const accommodationInfoHTML = isAccommodationPlace
-      ? `
-        <div style="margin:8px 0;padding:8px;background:#F5F5F5;border-radius:6px;">
-          <div style="font-size:12px;color:#666;display:flex;align-items:center;gap:4px;">
-            <span>🏨</span>
-            <span>숙박 시설</span>
-          </div>
-        </div>
-      `
-      : '';
-
-    // 연락처 정보
+    // 연락처 정보 - 가로 배치
     const contactHTML =
       place.phoneNumber || place.website
         ? `
-        <div style="margin-top:12px;padding-top:8px;border-top:1px solid #eee;">
+        <div style="display:flex;gap:12px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #eee;">
           ${
             place.phoneNumber
               ? `
-            <div style="margin-bottom:4px;">
-              <span style="color:#666;font-size:12px;">📞 ${place.phoneNumber}</span>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span style="color:#666;font-size:12px;">📞</span>
+              <span style="color:#666;font-size:12px;">${place.phoneNumber}</span>
             </div>
           `
               : ''
@@ -190,8 +160,9 @@ export function usePlanMap() {
             place.website
               ? `
             <div>
-              <a href="${place.website}" target="_blank" style="color:#1976D2;font-size:12px;text-decoration:none;">
-                🌐 웹사이트 보기
+              <a href="${place.website}" target="_blank" style="color:#1976D2;font-size:12px;text-decoration:none;display:flex;align-items:center;gap:4px;">
+                <span>🌐</span>
+                <span>웹사이트</span>
               </a>
             </div>
           `
@@ -201,43 +172,67 @@ export function usePlanMap() {
       `
         : '';
 
-    // 검색 결과용 추가 메시지 (숙소와 일반 장소 구분)
-    const searchMessageHTML = isSearchResult
-      ? `
-        <div style="margin-top:12px;padding-top:8px;border-top:1px solid #eee;text-align:center;">
-          <span style="color:${isAccommodationPlace ? '#2E7D32' : '#1976D2'};font-size:12px;font-weight:bold;">
-            + 클릭해서 숙소를 일정에 추가하세요!
-          </span>
-        </div>
-      `
-      : '';
+    // 메인 콘텐츠를 가로로 배치
+    const hasImage = !!place.photoUrl;
 
     // 사진 위 공백 버그 해결
     google.maps.event.addListener(infoWindow, 'domready', () => {
       const closeBtn = document.querySelector('.gm-ui-hover-effect') as HTMLElement;
       if (closeBtn) {
         closeBtn.style.position = 'absolute';
-        closeBtn.style.top = '-8px';
-        closeBtn.style.right = '-8px';
+        closeBtn.style.top = '-4px';
+        closeBtn.style.right = '-4px';
       }
     });
 
     return `
-      <div style="font-size:14px;max-width:280px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-        ${photoHTML}
-        <div style="margin-bottom:8px;">
-          <strong style="font-size:16px;color:#333;">${place.name}</strong>
+      <div style="
+        font-size:14px;
+        width:320px;
+        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+        display:flex;
+        gap:12px;
+        align-items:flex-start;
+      ">
+        ${
+          hasImage
+            ? `
+          <div style="flex-shrink:0;">
+            <img src="${place.photoUrl}" alt="${place.name}" style="
+              width:100px;
+              height:80px;
+              object-fit:cover;
+              border-radius:8px;
+            " />
+          </div>
+        `
+            : ''
+        }
+        
+        <div style="flex:1;min-width:0;">
+          <div>
+            <strong style="font-size:16px;color:#333;display:block;margin-bottom:4px;">${place.name}</strong>
+            ${typeHTML}
+          </div>
+          
+          ${ratingHTML}
+          
+          <div style="color:#666;font-size:12px;margin-bottom:6px;line-height:1.3;">
+            📍 ${place.address.length > 40 ? place.address.substring(0, 40) + '...' : place.address}
+          </div>
+          
+          ${
+            place.description
+              ? `
+            <div style="color:#555;font-size:12px;line-height:1.3;margin-bottom:6px;">
+              ${place.description.length > 60 ? place.description.substring(0, 60) + '...' : place.description}
+            </div>
+          `
+              : ''
+          }
+          
+          ${contactHTML}
         </div>
-        ${typeHTML}
-        ${ratingHTML}
-        <div style="color:#666;font-size:13px;margin-bottom:8px;line-height:1.3;">
-          📍 ${place.address}
-        </div>
-        ${descriptionHTML}
-        <!-- ${accommodationInfoHTML} -->
-        <!-- ${openStatusHTML} -->
-        ${contactHTML}
-        <!-- ${searchMessageHTML} -->
       </div>
     `;
   }
@@ -430,7 +425,7 @@ export function usePlanMap() {
     // 클릭 이벤트 추가 - 풍부한 정보창 표시
     marker.addEventListener('gmp-click', () => {
       infoWindow.close();
-      infoWindow.setContent(createRichInfoWindowContent(place, false));
+      infoWindow.setContent(createRichInfoWindowContent(place));
       infoWindow.open(map, marker);
       map?.panTo(place.location);
     });
@@ -496,13 +491,13 @@ export function usePlanMap() {
     // 검색 마커 클릭 시 정보창 표시 - 풍부한 정보창 표시
     searchClickMarker.value.addEventListener('gmp-click', () => {
       infoWindow.close();
-      infoWindow.setContent(createRichInfoWindowContent(place, true));
+      infoWindow.setContent(createRichInfoWindowContent(place));
       infoWindow.open(map, searchClickMarker.value);
     });
 
     // ✅ 마커 생성 직후 infoWindow 자동 오픈
     infoWindow.close();
-    infoWindow.setContent(createRichInfoWindowContent(place, true));
+    infoWindow.setContent(createRichInfoWindowContent(place));
     infoWindow.open(map, searchClickMarker.value);
   }
 

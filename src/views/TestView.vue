@@ -46,7 +46,7 @@
               ref="accommodationDrawerRef"
               :city-name="cityName"
               @place-click="handlePlaceClick"
-              @open-day-select-modal="openDaySelectModal"
+              @open-day-select-modal="openAccommodationModal"
             />
 
             <!-- Step 4용 Drawer 내용 (관광지 검색) -->
@@ -55,7 +55,7 @@
               ref="placeDrawerRef"
               :city-name="cityName"
               @place-click="handlePlaceClick"
-              @open-day-select-modal="openDaySelectModal"
+              @open-day-select-modal="openPlaceModal"
             />
           </div>
         </div>
@@ -83,65 +83,19 @@
     </div>
   </div>
 
-  <!-- 일차 선택 모달 -->
-  <Dialog v-model:open="isModalOpen">
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>
-          {{
-            selectedPlace && isAccommodationPlace(selectedPlace)
-              ? '숙소를 어느 Day에 추가할까요?'
-              : '어느 Day에 추가할까요?'
-          }}
-        </DialogTitle>
-        <p
-          v-if="selectedPlace && isAccommodationPlace(selectedPlace)"
-          class="text-sm text-orange-600"
-        >
-          ⚠️ 각 일차별로 숙소는 최대 1개만 선택할 수 있습니다.
-        </p>
-      </DialogHeader>
+  <!-- Step 3용 숙소 선택 모달 -->
+  <AccommodationDaySelectModal
+    v-model:open="isAccommodationModalOpen"
+    :place="selectedAccommodationPlace"
+    @confirm="handleAccommodationConfirm"
+  />
 
-      <div class="grid grid-cols-3 gap-2">
-        <Button
-          v-for="day in planStore.getTravelDays"
-          :key="day"
-          :variant="
-            planStore.hasAccommodationForDay(day) &&
-            selectedPlace &&
-            isAccommodationPlace(selectedPlace)
-              ? 'outline'
-              : 'secondary'
-          "
-          :disabled="
-            planStore.hasAccommodationForDay(day) &&
-            selectedPlace &&
-            isAccommodationPlace(selectedPlace)
-          "
-          @click="() => confirmDaySelection(day)"
-          class="relative"
-        >
-          Day {{ day }}
-          <span
-            v-if="
-              planStore.hasAccommodationForDay(day) &&
-              selectedPlace &&
-              isAccommodationPlace(selectedPlace)
-            "
-            class="absolute -top-1 -right-1 text-xs"
-          >
-            🏨
-          </span>
-        </Button>
-      </div>
-
-      <DialogFooter>
-        <DialogClose as-child>
-          <Button variant="ghost">취소</Button>
-        </DialogClose>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+  <!-- Step 4용 장소 선택 모달 -->
+  <PlaceDaySelectModal
+    v-model:open="isPlaceModalOpen"
+    :place="selectedPlace"
+    @confirm="handlePlaceConfirm"
+  />
 </template>
 
 <script setup lang="ts">
@@ -150,15 +104,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { usePlanStore } from '@/stores/plan';
 import { useRoute } from 'vue-router';
 import { usePlanMap } from '@/composables/plan';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogClose,
-} from '@/components/ui/dialog';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
 
 // 컴포넌트들 import
@@ -174,6 +119,10 @@ import {
 import Step3AccommodationDrawer from '@/components/plan/Step3AccommodationDrawer.vue';
 import Step4PlaceDrawer from '@/components/plan/Step4PlaceDrawer.vue';
 
+// 분리된 모달 컴포넌트들 import
+import AccommodationDaySelectModal from '@/components/plan/AccommodationDaySelectModal.vue';
+import PlaceDaySelectModal from '@/components/plan/PlaceDaySelectModal.vue';
+
 const planStore = usePlanStore();
 const route = useRoute();
 
@@ -184,20 +133,15 @@ const cityName = ref((route.params.cityName as string) || '서울');
 const { initMap, moveToLocation, addMarkerForDay, removeMarkerForDay, showMarkerForSearchClick } =
   usePlanMap();
 
-// 모달 관련 상태
+// 모달 관련 상태 - 분리됨
+const selectedAccommodationPlace = ref<PlaceResult | null>(null);
 const selectedPlace = ref<PlaceResult | null>(null);
-const isModalOpen = ref(false);
+const isAccommodationModalOpen = ref(false);
+const isPlaceModalOpen = ref(false);
 
 // Drawer 컴포넌트 ref
 const accommodationDrawerRef = ref<InstanceType<typeof Step3AccommodationDrawer>>();
 const placeDrawerRef = ref<InstanceType<typeof Step4PlaceDrawer>>();
-
-// 숙소인지 확인하는 함수
-function isAccommodationPlace(place: PlaceResult): boolean {
-  if (!place.types) return false;
-  const accommodationTypes = ['lodging', 'hotel', 'motel', 'resort', 'campground', 'rv_park'];
-  return place.types.some(type => accommodationTypes.includes(type));
-}
 
 // 지도 초기화 및 도시 위치로 이동
 onMounted(async () => {
@@ -247,37 +191,49 @@ function handleRemovePlace(day: number, placeId: string) {
   removeMarkerForDay(day, placeId);
 }
 
-function openDaySelectModal(place: PlaceResult) {
-  selectedPlace.value = place;
-  isModalOpen.value = true;
+// Step 3용 숙소 모달 열기
+function openAccommodationModal(place: PlaceResult) {
+  selectedAccommodationPlace.value = place;
+  isAccommodationModalOpen.value = true;
 }
 
-function confirmDaySelection(day: number) {
-  if (!selectedPlace.value) return;
+// Step 4용 장소 모달 열기
+function openPlaceModal(place: PlaceResult) {
+  selectedPlace.value = place;
+  isPlaceModalOpen.value = true;
+}
 
-  const place = selectedPlace.value;
+// Step 3용 숙소 확인 핸들러
+function handleAccommodationConfirm(days: number[], place: PlaceResult) {
+  const hasExistingAccommodations = days.some(day => planStore.hasAccommodationForDay(day));
 
-  if (isAccommodationPlace(place)) {
-    if (planStore.hasAccommodationForDay(day)) {
-      if (confirm(`${day}일차에 이미 숙소가 있습니다. 교체하시겠습니까?`)) {
-        const existingAccommodation = planStore.dayPlans[day].accommodation;
-        if (existingAccommodation) {
-          removeMarkerForDay(day, existingAccommodation.placeId);
-        }
-        planStore.addAccommodationToDay(day, place);
-        addMarkerForDay(day, place, 'accommodation');
-      }
-    } else {
-      planStore.addAccommodationToDay(day, place);
-      addMarkerForDay(day, place, 'accommodation');
+  if (hasExistingAccommodations) {
+    if (!confirm('기존에 선택된 숙소들이 교체됩니다. 계속하시겠습니까?')) {
+      return;
     }
-  } else {
-    planStore.addPlaceToDay(day, place);
-    addMarkerForDay(day, place, planStore.dayPlans[day].places.length);
   }
 
+  // 선택된 모든 일차에 숙소 배정
+  days.forEach(day => {
+    // 기존 숙소가 있다면 마커 제거
+    const existingAccommodation = planStore.dayPlans[day]?.accommodation;
+    if (existingAccommodation) {
+      removeMarkerForDay(day, existingAccommodation.placeId);
+    }
+
+    // 새 숙소 추가
+    planStore.addAccommodationToDay(day, place);
+    addMarkerForDay(day, place, 'accommodation');
+  });
+
+  selectedAccommodationPlace.value = null;
+}
+
+// Step 4용 장소 확인 핸들러
+function handlePlaceConfirm(day: number, place: PlaceResult) {
+  planStore.addPlaceToDay(day, place);
+  addMarkerForDay(day, place, planStore.dayPlans[day].places.length);
   selectedPlace.value = null;
-  isModalOpen.value = false;
 }
 
 // Step 변경 감지

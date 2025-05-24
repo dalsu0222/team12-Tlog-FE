@@ -62,7 +62,7 @@ const skipFriendInvite = () => {
           v-model="planStore.inviteNickname"
           type="text"
           placeholder="친구의 닉네임을 입력하세요"
-          class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          class="focus:border-bold focus:ring-bold flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
           @keyup.enter="addFriend"
         />
         <Button :disabled="!isValidNickname" @click="addFriend">초대하기</Button>
@@ -81,7 +81,7 @@ const skipFriendInvite = () => {
         >
           <div class="flex items-center gap-2">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-600"
+              class="bg-secondary flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium text-gray-800"
             >
               {{ friend.charAt(0).toUpperCase() }}
             </div>
@@ -100,9 +100,9 @@ const skipFriendInvite = () => {
     </div>
 
     <!-- 안내 메시지 -->
-    <div class="rounded-lg bg-blue-50 p-4">
-      <h4 class="mb-2 font-medium text-blue-800">💡 알아두세요</h4>
-      <ul class="space-y-1 text-sm text-blue-700">
+    <div class="bg-primary rounded-lg p-4">
+      <h4 class="mb-2 font-medium text-gray-800">💡 알아두세요</h4>
+      <ul class="space-y-1 text-sm text-gray-800">
         <li>• 닉네임으로 친구들을 구분합니다</li>
         <li>• 친구들도 여행 계획에 참여하여 의견을 제시할 수 있습니다</li>
         <li>• 나중에 친구를 추가하거나 제거할 수 있습니다</li>
