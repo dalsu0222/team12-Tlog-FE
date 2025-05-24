@@ -78,14 +78,17 @@
                 </span>
               </div>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              @click="openDaySelectModal(place)"
-              title="일정에 추가"
-            >
-              <PlusIcon class="h-4 w-4" />
-            </Button>
+            <div class="flex h-full items-center self-center">
+              <Button
+                size="sm"
+                variant="outline"
+                @click="openDaySelectModal(place)"
+                title="일정에 추가"
+                class="px-2 py-8"
+              >
+                <PlusIcon class="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
