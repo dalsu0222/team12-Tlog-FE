@@ -102,6 +102,7 @@ import { PlusIcon } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
+import { usePlaceSearch } from '@/composables/plan/usePlaceSearch';
 
 interface Props {
   cityName: string;
@@ -133,24 +134,7 @@ const categories = [
   { value: 'activity', label: '액티비티', icon: '🎢' },
 ];
 
-// 가격 레벨을 텍스트로 변환
-function getPriceLevelText(priceLevel?: number): string {
-  if (priceLevel === undefined) return '';
-  switch (priceLevel) {
-    case 0:
-      return '무료';
-    case 1:
-      return '₩';
-    case 2:
-      return '₩₩';
-    case 3:
-      return '₩₩₩';
-    case 4:
-      return '₩₩₩₩';
-    default:
-      return '';
-  }
-}
+const { getPriceLevelText } = usePlaceSearch();
 
 // 카테고리에 따른 검색 키워드 매핑
 function getCategorySearchKeywords(category: string): string {
