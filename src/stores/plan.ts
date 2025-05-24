@@ -61,14 +61,16 @@ export const usePlanStore = defineStore('plan', () => {
     rating: 0,
   });
 
-  // Computed
   const isDrawerVisible = computed(() => currentStep.value >= 3);
 
   const getTravelDays = computed(() => {
     if (!selectedDateRange.value.start || !selectedDateRange.value.end) return 0;
-    const timeDiff =
-      selectedDateRange.value.end.getTime() - selectedDateRange.value.start.getTime();
-    return Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    const start = new Date(selectedDateRange.value.start);
+    const end = new Date(selectedDateRange.value.end);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const timeDiff = end.getTime() - start.getTime();
+    return Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
   });
 
   // 숙소만 있는 일차들
