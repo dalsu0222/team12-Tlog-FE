@@ -73,6 +73,7 @@ const router = createRouter({
       props: true,
       meta: { requiresAuth: true }, // 로그인 필요
     },
+
   ],
 });
 
