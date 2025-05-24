@@ -17,13 +17,11 @@
             >
               <div
                 class="flex-1 cursor-pointer"
-                @click="handleAccommodationClick(dayPlans[day].accommodation!)"
+                @click="handleAccommodationClick(dayPlans[day].accommodation)"
               >
-                <div class="font-bold text-gray-800">
-                  🏨 {{ dayPlans[day].accommodation!.name }}
-                </div>
+                <div class="font-bold text-gray-800">🏨 {{ dayPlans[day].accommodation.name }}</div>
                 <div class="text-xs font-bold text-gray-800">
-                  {{ dayPlans[day].accommodation!.address }}
+                  {{ dayPlans[day].accommodation.address }}
                 </div>
                 <div
                   v-if="dayPlans[day].accommodation!.rating"
