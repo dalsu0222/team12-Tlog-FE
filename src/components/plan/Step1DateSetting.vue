@@ -216,9 +216,13 @@ const selectDate = (date: Date | null) => {
     // 두 번째 날짜 선택
     if (date >= planStore.tempDateRange.start) {
       // 10일 초과 체크
-      const dayDiff =
-        Math.ceil((date.getTime() - planStore.tempDateRange.start.getTime()) / (1000 * 3600 * 24)) +
-        1;
+      // UTC 기준으로 날짜만 00:00:00으로 맞춰 일수 차이를 계산 (포괄적 계산 시 +1)
+      const diffDaysInclusive = (start: Date, end: Date) => {
+        const utcStart = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+        const utcEnd = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+        return Math.floor((utcEnd - utcStart) / (1000 * 60 * 60 * 24)) + 1;
+      };
+      const dayDiff = diffDaysInclusive(planStore.tempDateRange.start, date);
       if (dayDiff > 10) {
         // 10일 초과 시 경고 메시지
         alert('여행 기간은 최대 10일까지 선택 가능합니다.');
