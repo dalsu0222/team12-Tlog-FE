@@ -5,41 +5,39 @@ import { usePlanStore } from '@/stores/plan';
 
 const planStore = usePlanStore();
 const nicknameError = ref('');
+const showError = ref(false);
 
 // 닉네임 유효성 검사
+const validateNickname = (nickname: string) => {
+  if (!nickname.trim()) return '닉네임을 입력해주세요.';
+  if (nickname.length < 2) return '닉네임은 2글자 이상이어야 합니다.';
+  if (nickname.length > 20) return '닉네임은 20글자 이하여야 합니다.';
+  if (planStore.invitedFriends.includes(nickname)) return '이미 초대된 친구입니다.';
+  return '';
+};
+
+// 닉네임 유효성 체크
 const isValidNickname = computed(() => {
-  const nickname = planStore.inviteNickname?.trim();
-  return nickname && nickname.length >= 2 && nickname.length <= 20;
+  const nickname = planStore.inviteNickname?.trim() || '';
+  return validateNickname(nickname) === '';
 });
 
-// 친구 추가
 const addFriend = () => {
+  const nickname = planStore.inviteNickname?.trim() || '';
+  const error = validateNickname(nickname);
+
+  if (error) {
+    nicknameError.value = error;
+    showError.value = true;
+    return;
+  }
+
   nicknameError.value = '';
-
-  if (!planStore.inviteNickname?.trim()) {
-    nicknameError.value = '닉네임을 입력해주세요.';
-    return;
-  }
-
-  const nickname = planStore.inviteNickname.trim();
-
-  if (nickname.length < 2) {
-    nicknameError.value = '닉네임은 2글자 이상이어야 합니다.';
-    return;
-  }
-
-  if (nickname.length > 20) {
-    nicknameError.value = '닉네임은 20글자 이하여야 합니다.';
-    return;
-  }
-
-  if (planStore.invitedFriends.includes(nickname)) {
-    nicknameError.value = '이미 초대된 친구입니다.';
-    return;
-  }
-
   planStore.addFriend(nickname);
   planStore.inviteNickname = '';
+  // 입력 필드를 비운 후 에러 상태도 초기화
+  nicknameError.value = '';
+  showError.value = false;
 };
 
 // 친구 초대 건너뛰기
@@ -63,11 +61,12 @@ const skipFriendInvite = () => {
           type="text"
           placeholder="친구의 닉네임을 입력하세요"
           class="focus:border-bold focus:ring-bold flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
-          @keyup.enter="addFriend"
+          @keyup.enter="isValidNickname && addFriend()"
+          @input="showError = true"
         />
         <Button :disabled="!isValidNickname" @click="addFriend">초대하기</Button>
       </div>
-      <p v-if="nicknameError" class="mt-1 text-sm text-red-500">{{ nicknameError }}</p>
+      <p v-if="showError && nicknameError" class="mt-1 text-sm text-red-500">{{ nicknameError }}</p>
     </div>
 
     <!-- 초대된 친구 목록 -->
