@@ -8,7 +8,7 @@ import { Header } from '@/components/common';
   <div class="flex h-screen flex-col">
     <Header />
 
-    <main class="mt-16 flex-1 overflow-y-auto bg-gray-100">
+    <main class="mt-16 flex-1 overflow-y-auto bg-gray-50">
       <router-view></router-view>
     </main>
   </div>

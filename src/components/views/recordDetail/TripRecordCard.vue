@@ -58,7 +58,7 @@ const handleMemoUpdate = (event: Event) => {
       <!-- Plans List -->
       <div
         v-if="plan.plans && plan.plans.length > 0"
-        class="mb-4 max-h-40 space-y-2 overflow-y-auto"
+        class="mb-4 max-h-50 space-y-2 overflow-y-auto"
       >
         <div
           v-for="(item, index) in plan.plans"
@@ -66,11 +66,11 @@ const handleMemoUpdate = (event: Event) => {
           class="flex items-start rounded-lg bg-gray-50 p-2"
         >
           <div
-            class="mr-2 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-medium text-white"
+            class="text-md mr-2 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 font-medium text-white"
           >
             {{ index + 1 }}
           </div>
-          <div class="flex-1 text-xs leading-relaxed">
+          <div class="text-md flex-1 leading-relaxed">
             {{ item.memo || '장소 정보가 없습니다' }}
           </div>
         </div>
