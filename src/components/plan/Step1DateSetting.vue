@@ -29,10 +29,11 @@
     <!-- 캐러셀 날짜 피커 모달 -->
     <div
       v-if="planStore.showDatePicker"
-      class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
+      class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+      style="background-color: rgba(0, 0, 0, 0.2)"
       @click.self="handleOutsideClick"
     >
-      <div class="relative mx-4 w-full max-w-4xl rounded-lg bg-white p-6" @click.stop>
+      <div class="relative mx-4 w-full max-w-4xl rounded-lg bg-white p-6 shadow-2xl" @click.stop>
         <div class="mb-4 flex items-center justify-between">
           <div class="flex w-full flex-col items-center justify-center">
             <h3 class="text-lg font-semibold">여행 기간 선택</h3>

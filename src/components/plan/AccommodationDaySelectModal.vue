@@ -73,7 +73,7 @@
         <!-- 전체 선택 버튼 -->
         <Button
           variant="outline"
-          class="border-bold text-bold hover:bg-secondary w-full"
+          class="border-bold text-bold hover:bg-secondary w-full py-6"
           @click="selectAllDays"
         >
           전체 선택
@@ -81,7 +81,7 @@
 
         <!-- 확인 버튼 -->
         <Button
-          class="bg-bold hover:bg-bold w-full text-white"
+          class="bg-bold hover:bg-bold w-full py-6 text-white"
           @click="confirmSelection"
           :disabled="selectedDays.length === 0"
         >

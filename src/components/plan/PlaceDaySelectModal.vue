@@ -29,9 +29,9 @@
 
         <!-- 확인/취소 버튼 -->
         <div class="flex gap-2 pt-2">
-          <Button variant="outline" class="flex-1" @click="closeModal">취소</Button>
+          <Button variant="outline" class="flex-1 py-6" @click="closeModal">취소</Button>
           <Button
-            class="bg-bold hover:bg-bold flex-1 text-white"
+            class="bg-bold hover:bg-bold flex-1 py-6 text-white"
             :disabled="selectedDay === null"
             @click="confirmSelection"
           >

@@ -1,172 +1,284 @@
+<template>
+  <div class="relative h-screen w-screen overflow-hidden">
+    <!-- 전체 레이아웃 -->
+    <div class="flex h-full">
+      <!-- Stepper 영역 -->
+      <CustomStepper />
+
+      <!-- 내용 영역 -->
+      <div class="relative w-[400px] overflow-y-auto bg-white p-8">
+        <Step1DateSetting v-if="planStore.currentStep === 1" />
+        <Step2FriendInvite v-else-if="planStore.currentStep === 2" />
+        <Step3AccommodationSetting
+          v-else-if="planStore.currentStep === 3"
+          @accommodation-click="handlePlaceClick"
+          @remove-accommodation="handleRemovePlace"
+        />
+        <Step4PlaceSearch
+          v-else-if="planStore.currentStep === 4"
+          @place-click="handlePlaceClick"
+          @remove-place="handleRemovePlace"
+        />
+      </div>
+
+      <!-- Drawer + 토글 버튼 (Step 3, 4에서만 표시) -->
+      <div
+        v-if="planStore.isDrawerVisible"
+        class="flex items-center transition-all duration-400 ease-in-out"
+        :style="{
+          width: planStore.drawerOpen ? '350px' : '0px',
+          minWidth: planStore.drawerOpen ? '350px' : '0px',
+          overflow: 'hidden',
+        }"
+      >
+        <div
+          class="h-full w-[350px] bg-white shadow-lg transition-all duration-400 ease-in-out"
+          :style="{
+            opacity: planStore.drawerOpen && planStore.showDrawerContent ? 1 : 0,
+            transform: planStore.drawerOpen ? 'translateX(0)' : 'translateX(-30px)',
+            pointerEvents: planStore.drawerOpen ? 'auto' : 'none',
+          }"
+        >
+          <div v-if="planStore.showDrawerContent" class="flex h-full flex-col">
+            <!-- Step 3용 Drawer 내용 (숙소 검색) -->
+            <Step3AccommodationDrawer
+              v-if="planStore.currentStep === 3"
+              ref="accommodationDrawerRef"
+              :city-name="cityName"
+              @place-click="handlePlaceClick"
+              @open-day-select-modal="openAccommodationModal"
+            />
+
+            <!-- Step 4용 Drawer 내용 (관광지 검색) -->
+            <Step4PlaceDrawer
+              v-if="planStore.currentStep === 4"
+              ref="placeDrawerRef"
+              :city-name="cityName"
+              @place-click="handlePlaceClick"
+              @open-day-select-modal="openPlaceModal"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- 토글 버튼 (Step 3, 4에서만 표시) -->
+      <div
+        v-if="planStore.isDrawerVisible"
+        class="bg-bold relative flex flex-col items-center justify-center"
+      >
+        <button
+          class="absolute left-0 h-10 rounded-r-md bg-white px-2 py-2 text-gray-400"
+          @click="planStore.toggleDrawer()"
+          style="z-index: 11"
+        >
+          <ChevronLeft v-if="planStore.drawerOpen" class="h-5 w-5" />
+          <ChevronRight v-else class="h-5 w-5" />
+        </button>
+      </div>
+
+      <!-- 지도 영역 -->
+      <div id="map" class="flex-1 transition-all duration-300">
+        <!-- 지도가 여기에 렌더링됩니다 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3용 숙소 선택 모달 -->
+  <AccommodationDaySelectModal
+    v-model:open="isAccommodationModalOpen"
+    :place="selectedAccommodationPlace"
+    @confirm="handleAccommodationConfirm"
+  />
+
+  <!-- Step 4용 장소 선택 모달 -->
+  <PlaceDaySelectModal
+    v-model:open="isPlaceModalOpen"
+    :place="selectedPlace"
+    @confirm="handlePlaceConfirm"
+  />
+</template>
+
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue';
-import { usePlaceSearch, usePlanMap } from '@/composables/plan';
-import { Command, CommandInput } from '@/components/ui/command';
-import { Button } from '@/components/ui/button';
-import { XIcon, PlusIcon } from 'lucide-vue-next';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogClose,
-} from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { watch, onMounted, ref } from 'vue';
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { usePlanStore } from '@/stores/plan';
+import { useRoute } from 'vue-router';
+import { usePlanMap } from '@/composables/plan';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
 
-// 1. 지도 초기화
+// 컴포넌트들 import
+import {
+  CustomStepper,
+  Step1DateSetting,
+  Step2FriendInvite,
+  Step3AccommodationSetting,
+  Step4PlaceSearch,
+} from '@/components/plan';
+
+// 새로 분리한 Drawer 컴포넌트들 import
+import Step3AccommodationDrawer from '@/components/plan/Step3AccommodationDrawer.vue';
+import Step4PlaceDrawer from '@/components/plan/Step4PlaceDrawer.vue';
+
+// 분리된 모달 컴포넌트들 import
+import AccommodationDaySelectModal from '@/components/plan/AccommodationDaySelectModal.vue';
+import PlaceDaySelectModal from '@/components/plan/PlaceDaySelectModal.vue';
+
+const planStore = usePlanStore();
+const route = useRoute();
+
+// 라우트 파라미터에서 cityId와 cityName 가져오기
+const cityName = ref((route.params.cityName as string) || '서울');
+
+// 지도 초기화
 const { initMap, moveToLocation, addMarkerForDay, removeMarkerForDay, showMarkerForSearchClick } =
   usePlanMap();
-onMounted(() => initMap());
 
-// 2. 장소 검색 훅
-const { query, places, isLoading, searchPlaces } = usePlaceSearch();
+// 모달 관련 상태 - 분리됨
+const selectedAccommodationPlace = ref<PlaceResult | null>(null);
+const selectedPlace = ref<PlaceResult | null>(null);
+const isAccommodationModalOpen = ref(false);
+const isPlaceModalOpen = ref(false);
 
-// 3. 사용자가 장소를 클릭하면 해당 위치로 지도를 이동하고 마커를 표시
-function handlePlaceClick(place: PlaceResult) {
-  moveToLocation(place.location);
-  showMarkerForSearchClick(place, dayPlans);
-}
+// Drawer 컴포넌트 ref
+const accommodationDrawerRef = ref<InstanceType<typeof Step3AccommodationDrawer>>();
+const placeDrawerRef = ref<InstanceType<typeof Step4PlaceDrawer>>();
 
-// 4. 여행 일 수 관리 - 각 일차별로 방문할 장소들을 저장하는 반응형 객체
-const dayPlans = reactive<Record<number, PlaceResult[]>>({});
+// 지도 초기화 및 도시 위치로 이동
+onMounted(async () => {
+  const map = await initMap();
 
-const selectedPlace = ref<PlaceResult | null>(null); // 현재 선택된 장소를 저장하는 ref
-const isModalOpen = ref(false); // 일차 선택 모달의 표시 여부를 관리하는 ref
-const dayLength = ref(4); // 여행 일 수 (기본값: 4일)
+  // cityName을 기반으로 위치 검색 및 이동
+  if (cityName.value) {
+    try {
+      const { Geocoder } = (await google.maps.importLibrary(
+        'geocoding'
+      )) as google.maps.GeocodingLibrary;
+      const geocoder = new Geocoder();
 
-// 5. 여행 일 수 변경 시 dayPlans 초기화, 기존 dayPlans에 없는 day만 초기화
+      const response = await geocoder.geocode({
+        address: cityName.value + ', South Korea',
+        region: 'kr',
+      });
+
+      if (response.results.length > 0) {
+        const location = response.results[0].geometry.location;
+        moveToLocation(location);
+        if (map) map.setZoom(12);
+      }
+    } catch (error) {
+      console.error('도시 위치 검색 오류:', error);
+    }
+  }
+});
+
+// Watch for travel days changes to initialize dayPlans
 watch(
-  dayLength,
-  newLen => {
-    // 기존 dayPlans에 없는 day만 초기화
-    for (let day = 1; day <= newLen; day++) {
-      if (!dayPlans[day]) {
-        dayPlans[day] = [];
-      }
-    }
-
-    // dayLength보다 긴 day는 삭제
-    for (const key of Object.keys(dayPlans)) {
-      const day = Number(key);
-      if (day > newLen) {
-        delete dayPlans[day];
-      }
-    }
+  () => planStore.getTravelDays,
+  () => {
+    planStore.initializeDayPlans();
   },
   { immediate: true }
 );
 
-// 6. 장소 삭제 - 특정 일차에서 선택한 장소를 삭제하고 해당 마커도 지도에서 제거
-function removePlaceFromDay(day: number, placeId: string) {
-  dayPlans[day] = dayPlans[day].filter(p => p.placeId !== placeId);
+// 이벤트 핸들러들
+function handlePlaceClick(place: PlaceResult) {
+  moveToLocation(place.location);
+  showMarkerForSearchClick(place, planStore.dayPlans);
+}
+
+function handleRemovePlace(day: number, placeId: string) {
+  planStore.removePlaceFromDay(day, placeId);
   removeMarkerForDay(day, placeId);
 }
 
-// 7. 장소 추가 - 선택한 장소를 어느 일차에 추가할지 선택하는 모달 열기
-function openDaySelectModal(place: PlaceResult) {
+// Step 3용 숙소 모달 열기
+function openAccommodationModal(place: PlaceResult) {
+  selectedAccommodationPlace.value = place;
+  isAccommodationModalOpen.value = true;
+}
+
+// Step 4용 장소 모달 열기
+function openPlaceModal(place: PlaceResult) {
   selectedPlace.value = place;
-  isModalOpen.value = true;
+  isPlaceModalOpen.value = true;
 }
 
-// 8. 장소 추가 확정 - 선택한 장소를 지정된 일차에 추가하고 지도에 마커를 표시
-function confirmDaySelection(day: number) {
-  if (!selectedPlace.value) return;
+// Step 3용 숙소 확인 핸들러
+function handleAccommodationConfirm(days: number[], place: PlaceResult) {
+  const hasExistingAccommodations = days.some(day => planStore.hasAccommodationForDay(day));
 
-  const place = selectedPlace.value;
+  if (hasExistingAccommodations) {
+    if (!confirm('기존에 선택된 숙소들이 교체됩니다. 계속하시겠습니까?')) {
+      return;
+    }
+  }
 
-  if (!dayPlans[day]) dayPlans[day] = [];
-  dayPlans[day].push(place);
+  // 선택된 모든 일차에 숙소 배정
+  days.forEach(day => {
+    // 기존 숙소가 있다면 마커 제거
+    const existingAccommodation = planStore.dayPlans[day]?.accommodation;
+    if (existingAccommodation) {
+      removeMarkerForDay(day, existingAccommodation.placeId);
+    }
 
-  addMarkerForDay(day, place, dayPlans[day].length);
+    // 새 숙소 추가
+    planStore.addAccommodationToDay(day, place);
+    addMarkerForDay(day, place, 'accommodation');
+  });
 
+  selectedAccommodationPlace.value = null;
+}
+
+// Step 4용 장소 확인 핸들러
+function handlePlaceConfirm(day: number, place: PlaceResult) {
+  planStore.addPlaceToDay(day, place);
+  addMarkerForDay(day, place, planStore.dayPlans[day].places.length);
   selectedPlace.value = null;
-  isModalOpen.value = false;
 }
+
+// Step 변경 감지
+watch(
+  () => planStore.currentStep,
+  (newStep, oldStep) => {
+    if (newStep >= 3 && oldStep < 3) {
+      planStore.drawerOpen = true;
+    } else if (newStep < 3) {
+      planStore.drawerOpen = false;
+      planStore.showDrawerContent = false;
+    }
+
+    // Drawer 컴포넌트의 초기 데이터 로드
+    if (newStep === 3) {
+      setTimeout(() => {
+        accommodationDrawerRef.value?.loadDefaultAccommodations();
+      }, 300);
+    }
+
+    if (newStep === 4) {
+      setTimeout(() => {
+        placeDrawerRef.value?.loadDefaultAttractions();
+      }, 300);
+    }
+  }
+);
+
+// drawer 상태 변경 시 애니메이션 처리
+watch(
+  () => planStore.drawerOpen,
+  val => {
+    if (val) {
+      setTimeout(() => {
+        planStore.showDrawerContent = true;
+      }, 200);
+    } else {
+      planStore.showDrawerContent = false;
+    }
+  }
+);
 </script>
 
-<template>
-  <div class="flex min-h-screen items-center justify-start gap-4 bg-gray-100 p-6">
-    <div class="flex w-full flex-col items-center gap-5">
-      <div class="flex w-full items-center gap-2">
-        <Command>
-          <CommandInput v-model="query" placeholder="장소 검색..." @keyup.enter="searchPlaces" />
-        </Command>
-        <Button :disabled="isLoading" @click="searchPlaces">
-          {{ isLoading ? '검색 중...' : '검색' }}
-        </Button>
-      </div>
-      <ScrollArea class="w-full max-w-2xl">
-        <div v-for="day in Object.keys(dayPlans).map(Number)" :key="day">
-          <div class="text-lg font-semibold">{{ day }}일차</div>
-          <ul>
-            <li
-              v-for="(place, index) in dayPlans[day]"
-              :key="place.placeId"
-              class="cursor-pointer"
-              @click="() => handlePlaceClick(place)"
-            >
-              {{ index + 1 }}. {{ place.name }} ({{ place.address }})
-              <button @click="removePlaceFromDay(Number(day), place.placeId)" class="ml-2">
-                <XIcon class="h-4 w-4 text-gray-400 hover:text-red-500" />
-              </button>
-            </li>
-          </ul>
-        </div>
-      </ScrollArea>
-
-      <ScrollArea class="h-[400px] w-full">
-        <div
-          v-for="place in places"
-          :key="place.name + place.address"
-          class="mb-2 flex cursor-pointer items-center gap-4 rounded-lg border bg-white p-3 shadow hover:bg-gray-100"
-          @click="handlePlaceClick(place)"
-        >
-          <img
-            v-if="place.photoUrl"
-            loading="lazy"
-            :src="place.photoUrl"
-            alt="장소 이미지"
-            class="h-24 w-24 rounded object-cover"
-          />
-
-          <div>
-            <div class="text-lg font-semibold">{{ place.name }}</div>
-            <div class="text-sm text-gray-600">{{ place.address }}</div>
-          </div>
-          <Button size="sm" variant="outline" @click="() => openDaySelectModal(place)">
-            <PlusIcon class="h-4 w-4" />
-          </Button>
-        </div>
-      </ScrollArea>
-    </div>
-
-    <div id="map" class="mt-6 h-[400px] w-full rounded-lg shadow" />
-  </div>
-
-  <Dialog v-model:open="isModalOpen">
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>어느 Day에 추가할까요?</DialogTitle>
-      </DialogHeader>
-
-      <div class="grid grid-cols-3 gap-2">
-        <Button
-          v-for="day in dayLength"
-          :key="day"
-          variant="secondary"
-          @click="() => confirmDaySelection(day)"
-        >
-          Day {{ day }}
-        </Button>
-      </div>
-
-      <DialogFooter>
-        <DialogClose as-child>
-          <Button variant="ghost">취소</Button>
-        </DialogClose>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-</template>
+<style scoped>
+.whitespace-pre-line {
+  white-space: pre-line;
+}
+</style>

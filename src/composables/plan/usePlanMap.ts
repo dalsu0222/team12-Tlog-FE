@@ -452,7 +452,12 @@ export function usePlanMap() {
     map?.setZoom(15);
   }
 
-  // 검색 결과 클릭 시 마커 표시 (이미 추가된 장소는 제외) - DayPlan 구조에 맞게 수정
+  // 이미 추가된 장소의 기존 마커 찾기
+  function findExistingMarker(placeId: string): CustomMarker | null {
+    return markers.value.find(marker => marker.placeId === placeId) || null;
+  }
+
+  // 검색 결과 클릭 시 마커 표시 및 infoWindow 표시 - 수정된 버전
   function showMarkerForSearchClick(place: PlaceResult, dayPlans: Record<number, DayPlan>) {
     if (!map) return;
 
@@ -463,15 +468,26 @@ export function usePlanMap() {
         dayPlan.places.some(p => p.placeId === place.placeId)
     );
 
-    // 이미 추가된 장소라면 검색 마커를 표시하지 않음
+    // 이미 추가된 장소라면 기존 마커에서 infoWindow 표시
     if (isAlreadyPlanned) {
-      if (searchClickMarker.value) {
-        searchClickMarker.value.map = null;
-        searchClickMarker.value = null;
+      const existingMarker = findExistingMarker(place.placeId);
+      if (existingMarker) {
+        // 기존 검색 마커가 있다면 제거
+        if (searchClickMarker.value) {
+          searchClickMarker.value.map = null;
+          searchClickMarker.value = null;
+        }
+
+        // 기존 마커에서 infoWindow 표시
+        infoWindow.close();
+        infoWindow.setContent(createRichInfoWindowContent(place));
+        infoWindow.open(map, existingMarker);
+        map?.panTo(place.location);
+        return;
       }
-      return;
     }
 
+    // 새로운 장소인 경우 검색 마커 생성
     // 기존 검색 마커가 있다면 제거
     if (searchClickMarker.value) {
       searchClickMarker.value.map = null;
