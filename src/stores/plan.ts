@@ -44,7 +44,6 @@ export const usePlanStore = defineStore('plan', () => {
 
   // Step 2: 친구 초대
   const invitedFriends = ref<string[]>([]);
-  const inviteEmail = ref('');
   const inviteNickname = ref('');
 
   // Step 3: 숙소 설정
@@ -171,14 +170,14 @@ export const usePlanStore = defineStore('plan', () => {
     );
   };
 
-  const addFriend = (email: string) => {
-    if (email && !invitedFriends.value.includes(email)) {
-      invitedFriends.value.push(email);
+  const addFriend = (nickname: string) => {
+    if (nickname && !invitedFriends.value.includes(nickname)) {
+      invitedFriends.value.push(nickname);
     }
   };
 
-  const removeFriend = (email: string) => {
-    const index = invitedFriends.value.indexOf(email);
+  const removeFriend = (nickname: string) => {
+    const index = invitedFriends.value.indexOf(nickname);
     if (index > -1) {
       invitedFriends.value.splice(index, 1);
     }
@@ -212,7 +211,6 @@ export const usePlanStore = defineStore('plan', () => {
     tempDateRange,
     showDatePicker,
     invitedFriends,
-    inviteEmail,
     inviteNickname,
     accommodationSettings,
     searchResults,
