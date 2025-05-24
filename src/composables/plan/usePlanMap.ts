@@ -54,6 +54,16 @@ export function usePlanMap() {
 
     infoWindow = new google.maps.InfoWindow();
 
+    // 사진 위 공백 버그 해결 - 한 번만 등록
+    google.maps.event.addListener(infoWindow, 'domready', () => {
+      const closeBtn = document.querySelector('.gm-ui-hover-effect') as HTMLElement;
+      if (closeBtn) {
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '-4px';
+        closeBtn.style.right = '-4px';
+      }
+    });
+
     return map;
   };
 
@@ -174,16 +184,6 @@ export function usePlanMap() {
 
     // 메인 콘텐츠를 가로로 배치
     const hasImage = !!place.photoUrl;
-
-    // 사진 위 공백 버그 해결
-    google.maps.event.addListener(infoWindow, 'domready', () => {
-      const closeBtn = document.querySelector('.gm-ui-hover-effect') as HTMLElement;
-      if (closeBtn) {
-        closeBtn.style.position = 'absolute';
-        closeBtn.style.top = '-4px';
-        closeBtn.style.right = '-4px';
-      }
-    });
 
     return `
       <div style="
