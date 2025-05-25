@@ -101,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, ref } from 'vue';
+import { watch, onMounted, ref, nextTick } from 'vue';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { usePlanStore } from '@/stores/plan';
 import { useRoute } from 'vue-router';
@@ -205,7 +205,11 @@ function handleOrderChanged(day: number) {
   // 해당 일차의 DayPlan을 가져와서 지도 업데이트
   const dayPlan = planStore.dayPlans[day];
   if (dayPlan) {
-    updateMarkersForDayPlan(day, dayPlan);
+    // setTimeout 사용 지양하고 Vue의 nextTick을 사용
+    // 반응성 업데이트가 완료된 후 실행
+    nextTick(() => {
+      updateMarkersForDayPlan(day, planStore.dayPlans[day]);
+    });
   }
 }
 

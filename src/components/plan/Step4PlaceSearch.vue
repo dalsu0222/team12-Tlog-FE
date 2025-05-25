@@ -67,6 +67,7 @@
             @start="onDragStart"
             @end="evt => onDragEnd(evt, day)"
             class="min-h-[60px]"
+            :data-day="day"
           >
             <template #item="{ element: place, index }">
               <div
@@ -129,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, nextTick } from 'vue';
 import { XIcon, GripVertical, MapPin, Calendar } from 'lucide-vue-next';
 import { usePlanStore } from '@/stores/plan';
 import { dayColors } from '@/composables/plan/usePlanMap';
@@ -190,15 +191,38 @@ function onDragStart() {
 interface DragEvent {
   oldIndex: number;
   newIndex: number;
+  from: HTMLElement;
+  to: HTMLElement;
 }
 
 function onDragEnd(evt: DragEvent, day: number) {
   isDragging.value = false;
 
-  // 순서가 실제로 변경되었는지 확인
+  // 다른 일차로 이동한 경우 처리
+  if (evt.from !== evt.to) {
+    // 원래 일차와 새로운 일차 모두 업데이트
+    const fromDay = parseInt(
+      (evt.from.closest('[data-day]') as HTMLElement)?.dataset.day || day.toString()
+    );
+    const toDay = parseInt(
+      (evt.to.closest('[data-day]') as HTMLElement)?.dataset.day || day.toString()
+    );
+
+    // setTimeout 사용 지양
+    // Vue의 nextTick을 사용해서 반응성 업데이트가 완료된 후 실행
+    nextTick(() => {
+      if (fromDay !== toDay) {
+        emit('orderChanged', fromDay); // 원래 일차 업데이트
+        emit('orderChanged', toDay); // 새로운 일차 업데이트
+      }
+    });
+
+    return;
+  }
+
+  // 같은 일차 내에서 순서가 변경된 경우
   if (evt.oldIndex !== evt.newIndex) {
     console.log(`Day ${day}: 드래그로 순서 변경됨 (${evt.oldIndex} -> ${evt.newIndex})`);
-    // 부모 컴포넌트에 순서 변경 알림
     emit('orderChanged', day);
   }
 }
