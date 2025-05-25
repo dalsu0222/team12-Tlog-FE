@@ -21,10 +21,14 @@ const formatDate = (dateString: string): string => {
 </script>
 
 <template>
-  <div>
-    <h1 class="mb-2 text-2xl font-bold">{{ title }}</h1>
-    <p class="mb-4 text-gray-600">{{ formatDate(startDate) }} ~ {{ formatDate(endDate) }}</p>
-    <div class="mb-6 flex gap-2 text-sm text-gray-500">
+  <div class="mb-6 text-center sm:mb-8 lg:mb-10">
+    <h2 class="mb-2 text-xl font-bold text-gray-800 sm:mb-3 sm:text-2xl lg:text-3xl">
+      {{ title }}
+    </h2>
+    <p class="mb-4 text-sm text-gray-600 sm:text-base lg:text-lg">
+      {{ formatDate(startDate) }} ~ {{ formatDate(endDate) }}
+    </p>
+    <div class="flex justify-center gap-2 text-xs text-gray-500 sm:text-sm">
       <span>참여 {{ participants.length }}명</span>
       <span v-if="participants.length > 0">·</span>
       <span>{{ participants.join(', ') }}</span>

@@ -57,9 +57,13 @@ onMounted(() => {
 <template>
   <div class="mx-auto h-full max-w-screen-xl px-4 py-8">
     <!-- 헤더 -->
-    <div class="mb-8 text-center">
-      <h1 class="mb-2 text-3xl font-bold text-gray-800">AI 후기 리스트</h1>
-      <p class="text-gray-600">AI가 생성해주는 블로그 초안을 만나보세요~~~~</p>
+    <div class="mb-6 text-center sm:mb-8 lg:mb-10">
+      <h2 class="mb-2 text-xl font-bold text-gray-800 sm:mb-3 sm:text-2xl lg:text-3xl">
+        AI 후기 리스트
+      </h2>
+      <p class="text-sm text-gray-600 sm:text-base lg:text-lg">
+        AI가 생성해주는 블로그 초안을 만나보세요~~~~
+      </p>
     </div>
 
     <!-- 로딩 상태 - 전체 페이지에 대한 로딩 -->

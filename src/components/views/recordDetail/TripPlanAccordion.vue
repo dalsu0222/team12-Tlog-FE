@@ -11,7 +11,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { type CarouselApi } from '@/components/ui/carousel';
-import { Loader2, Check, Save } from 'lucide-vue-next';
+import { Loader2, Check, Save, MapPin, ArrowRight } from 'lucide-vue-next';
 import TripRecordCard from './TripRecordCard.vue';
 import { toast } from 'vue-sonner';
 
@@ -246,34 +246,51 @@ onMounted(() => {
 </script>
 
 <template>
-  <AccordionItem value="step1" class="mb-4 overflow-hidden rounded-lg bg-blue-50">
-    <AccordionTrigger class="px-4 py-3 hover:no-underline">
-      <div class="flex items-center">
-        <span class="text-lg font-semibold text-blue-800">Step 1</span>
-        <span class="ml-4 text-lg font-medium">여행 리마인드</span>
-      </div>
-    </AccordionTrigger>
-    <AccordionContent class="px-4 pb-4">
-      <div class="mb-4 text-sm text-gray-600">여행 계획을 바탕으로 여행 기록을 가져왔습니다.</div>
-
-      <div v-if="!plans || plans.length === 0" class="py-8 text-center">
-        <p class="text-gray-500">아직 여행 계획이 없습니다.</p>
-      </div>
-
-      <div v-else class="space-y-6">
-        <!-- Progress Indicator -->
-        <div class="mb-4 flex items-center justify-center space-x-4">
-          <div class="text-base text-gray-500">
-            Day {{ currentVisibleRange.start
-            }}{{
-              currentVisibleRange.end > currentVisibleRange.start
-                ? ` - ${currentVisibleRange.end}`
-                : ''
-            }}
-            / {{ plans.length }}
+  <AccordionItem
+    value="step1"
+    class="group overflow-hidden rounded-2xl border-0 bg-gradient-to-br from-white to-gray-50 shadow-md transition-all duration-500 hover:shadow-lg"
+  >
+    <AccordionTrigger class="px-8 py-6 hover:no-underline">
+      <div class="flex items-center gap-4">
+        <div
+          class="rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 p-3 transition-transform duration-300 group-hover:scale-110"
+        >
+          <MapPin class="h-6 w-6 text-blue-600" />
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-gray-800">Step1 여행 기록</h3>
+          <div class="mt-2 flex items-center gap-2">
+            <span class="text-base font-medium text-blue-600">여행 기록 작성하기</span>
+            <ArrowRight
+              class="h-4 w-4 text-blue-600 transition-transform duration-300 group-hover:translate-x-1"
+            />
           </div>
         </div>
+      </div>
+    </AccordionTrigger>
+    <AccordionContent class="px-8 pb-6">
+      <div class="space-y-4">
+        <p class="text-base leading-relaxed text-gray-600">
+          소중한 여행의 순간들을 날짜별로 기록하고 추억을 남겨보세요
+        </p>
 
+        <!-- <div class="space-y-2">
+          <div class="flex items-center gap-3">
+            <div class="h-2 w-2 rounded-full bg-blue-600"></div>
+            <span class="text-base text-gray-700">일차별 여행 일기 작성</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="h-2 w-2 rounded-full bg-blue-600"></div>
+            <span class="text-base text-gray-700">특별한 순간과 감정 기록</span>
+          </div>
+        </div> -->
+      </div>
+
+      <div v-if="!plans || plans.length === 0" class="py-8 text-center">
+        <p class="text-gray-500">아직 작성된 여행 기록이 없습니다</p>
+      </div>
+
+      <div v-else class="mt-6 space-y-6">
         <!-- Carousel Component -->
         <Carousel
           class="relative w-full"
@@ -292,6 +309,7 @@ onMounted(() => {
               <TripRecordCard
                 :plan="plan"
                 :memo="memos[plan.day] || ''"
+                :date="calculateDate(plan.day)"
                 @update-memo="updateMemo"
               />
             </CarouselItem>
@@ -305,13 +323,22 @@ onMounted(() => {
         <!-- Save Button -->
         <div class="flex justify-center pt-4">
           <!-- 저장 중일 때 -->
-          <Button v-if="isSaving" disabled class="px-6 py-2">
+          <Button
+            v-if="isSaving"
+            disabled
+            class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 text-white shadow-lg"
+          >
             <Loader2 class="mr-2 h-4 w-4 animate-spin" />
             저장 중...
           </Button>
 
           <!-- 저장 완료일 때 -->
-          <Button v-else-if="saveComplete" disabled variant="default" class="px-6 py-2">
+          <Button
+            v-else-if="saveComplete"
+            disabled
+            variant="default"
+            class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-white shadow-lg"
+          >
             <Check class="mr-2 h-4 w-4" />
             저장 완료
           </Button>
@@ -320,12 +347,13 @@ onMounted(() => {
           <Button
             v-else
             @click="saveAllMemos"
+            size="lg"
             :disabled="!hasUnsavedChanges"
             variant="default"
-            class="px-6 py-2"
+            class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 text-white shadow-lg transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-xl disabled:opacity-60"
           >
             <Save class="mr-2 h-4 w-4" />
-            <span v-if="hasUnsavedChanges">여행 기록 저장하기</span>
+            <span v-if="hasUnsavedChanges">여행 일기 저장하기</span>
             <span v-else>저장할 내용이 없습니다</span>
           </Button>
         </div>
