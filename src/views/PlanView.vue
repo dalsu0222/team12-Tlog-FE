@@ -13,11 +13,13 @@
           v-else-if="planStore.currentStep === 3"
           @accommodation-click="handlePlaceClick"
           @remove-accommodation="handleRemovePlace"
+          @order-changed="handleOrderChanged"
         />
         <Step4PlaceSearch
           v-else-if="planStore.currentStep === 4"
           @place-click="handlePlaceClick"
           @remove-place="handleRemovePlace"
+          @order-changed="handleOrderChanged"
         />
       </div>
 
@@ -130,8 +132,14 @@ const route = useRoute();
 const cityName = ref((route.params.cityName as string) || '서울');
 
 // 지도 초기화
-const { initMap, moveToLocation, addMarkerForDay, removeMarkerForDay, showMarkerForSearchClick } =
-  usePlanMap();
+const {
+  initMap,
+  moveToLocation,
+  addMarkerForDay,
+  removeMarkerForDay,
+  showMarkerForSearchClick,
+  updateMarkersForDayPlan,
+} = usePlanMap();
 
 // 모달 관련 상태 - 분리됨
 const selectedAccommodationPlace = ref<PlaceResult | null>(null);
@@ -190,6 +198,15 @@ function handleRemovePlace(day: number, placeId: string) {
   planStore.removePlaceFromDay(day, placeId);
   // dayPlan 전달 추가
   removeMarkerForDay(day, placeId, planStore.dayPlans[day]);
+}
+
+// 🆕 순서 변경 핸들러 - 드래그 앤 드롭으로 순서가 바뀔 때 호출
+function handleOrderChanged(day: number) {
+  // 해당 일차의 DayPlan을 가져와서 지도 업데이트
+  const dayPlan = planStore.dayPlans[day];
+  if (dayPlan) {
+    updateMarkersForDayPlan(day, dayPlan);
+  }
 }
 
 // Step 3용 숙소 모달 열기

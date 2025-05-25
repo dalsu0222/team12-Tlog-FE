@@ -4,6 +4,8 @@ import type { PlaceResult } from './usePlaceSearch';
 
 interface CustomMarker extends google.maps.marker.AdvancedMarkerElement {
   placeId: string;
+  day: number;
+  type: 'accommodation' | 'place';
 }
 
 // DayPlan 타입 정의 (TestView.vue와 동일)
@@ -454,12 +456,37 @@ export function usePlanMap() {
     }
   }
 
-  // 수정된 addMarkerForDay 함수 - polyline 업데이트 시 딜레이 제거
-  async function addMarkerForDay(
+  // 특정 일차의 모든 마커를 다시 그리는 함수 (순서 번호 업데이트용)
+  async function refreshMarkersForDay(day: number, dayPlan: DayPlan) {
+    if (!map) return;
+
+    // 해당 일차의 기존 마커들 제거
+    const markersToRemove = markers.value.filter(marker => marker.day === day);
+    markersToRemove.forEach(marker => {
+      marker.map = null;
+    });
+    markers.value = markers.value.filter(marker => marker.day !== day);
+
+    // 숙소 마커 다시 생성
+    if (dayPlan.accommodation) {
+      await addSingleMarker(day, dayPlan.accommodation, 'accommodation');
+    }
+
+    // 장소 마커들 순서대로 다시 생성
+    for (let i = 0; i < dayPlan.places.length; i++) {
+      await addSingleMarker(day, dayPlan.places[i], 'place', i + 1);
+    }
+
+    // Polyline 업데이트
+    updatePolylineForDay(day, dayPlan);
+  }
+
+  // 단일 마커 생성 헬퍼 함수
+  async function addSingleMarker(
     day: number,
     place: PlaceResult,
-    orderOrType: number | 'accommodation',
-    dayPlan: DayPlan // dayPlan 추가
+    type: 'accommodation' | 'place',
+    order?: number
   ) {
     const { AdvancedMarkerElement } = (await google.maps.importLibrary(
       'marker'
@@ -467,16 +494,10 @@ export function usePlanMap() {
 
     let markerElement;
 
-    if (orderOrType === 'accommodation') {
-      // 숙소용 마커 (호텔 아이콘)
+    if (type === 'accommodation') {
       markerElement = createCustomMarker(0, dayColors[day - 1] ?? '#888', 'accommodation');
     } else {
-      // 일반 장소용 마커 (순서 번호)
-      markerElement = createCustomMarker(
-        orderOrType as number,
-        dayColors[day - 1] ?? '#888',
-        'day'
-      );
+      markerElement = createCustomMarker(order!, dayColors[day - 1] ?? '#888', 'day');
     }
 
     // 마커 생성
@@ -488,6 +509,8 @@ export function usePlanMap() {
     }) as CustomMarker;
 
     marker.placeId = place.placeId;
+    marker.day = day;
+    marker.type = type;
 
     // 클릭 이벤트 추가 - 풍부한 정보창 표시
     marker.addEventListener('gmp-click', () => {
@@ -504,20 +527,34 @@ export function usePlanMap() {
       searchClickMarker.value.map = null;
       searchClickMarker.value = null;
     }
-
-    // Polyline 즉시 업데이트
-    updatePolylineForDay(day, dayPlan);
   }
 
-  async function removeMarkerForDay(day: number, placeId: string, dayPlan: DayPlan) {
-    const marker = markers.value.find(m => m.placeId === placeId);
-    if (marker) {
-      marker.map = null;
-      markers.value = markers.value.filter(m => m !== marker);
+  // 기존 addMarkerForDay 함수를 단순화
+  async function addMarkerForDay(
+    day: number,
+    place: PlaceResult,
+    orderOrType: number | 'accommodation',
+    dayPlan: DayPlan
+  ) {
+    if (orderOrType === 'accommodation') {
+      await addSingleMarker(day, place, 'accommodation');
+    } else {
+      await addSingleMarker(day, place, 'place', orderOrType as number);
     }
 
     // Polyline 업데이트
     updatePolylineForDay(day, dayPlan);
+  }
+
+  // 마커 제거 후 해당 일차 전체 새로고침
+  async function removeMarkerForDay(day: number, placeId: string, dayPlan: DayPlan) {
+    // 전체 마커 새로고침으로 순서 번호 업데이트
+    await refreshMarkersForDay(day, dayPlan);
+  }
+
+  // 새로운 함수: 드래그로 순서 변경 시 호출
+  async function updateMarkersForDayPlan(day: number, dayPlan: DayPlan) {
+    await refreshMarkersForDay(day, dayPlan);
   }
 
   function moveToLocation(position: google.maps.LatLng | google.maps.LatLngLiteral) {
@@ -602,6 +639,7 @@ export function usePlanMap() {
     initMap,
     addMarkerForDay,
     removeMarkerForDay,
+    updateMarkersForDayPlan, // 새로 추가된 함수
     moveToLocation,
     showMarkerForSearchClick,
     clearAllPolylines,

@@ -65,7 +65,7 @@
             chosen-class="chosen-card"
             drag-class="drag-card"
             @start="onDragStart"
-            @end="onDragEnd"
+            @end="evt => onDragEnd(evt, day)"
             class="min-h-[60px]"
           >
             <template #item="{ element: place, index }">
@@ -145,6 +145,7 @@ const dayPlans = computed(() => planStore.dayPlans);
 const emit = defineEmits<{
   placeClick: [place: PlaceResult];
   removePlace: [day: number, placeId: string];
+  orderChanged: [day: number]; // 순서 변경 이벤트 추가
 }>();
 
 function getDayColor(day: number): string {
@@ -186,8 +187,20 @@ function onDragStart() {
   isDragging.value = true;
 }
 
-function onDragEnd() {
+interface DragEvent {
+  oldIndex: number;
+  newIndex: number;
+}
+
+function onDragEnd(evt: DragEvent, day: number) {
   isDragging.value = false;
+
+  // 순서가 실제로 변경되었는지 확인
+  if (evt.oldIndex !== evt.newIndex) {
+    console.log(`Day ${day}: 드래그로 순서 변경됨 (${evt.oldIndex} -> ${evt.newIndex})`);
+    // 부모 컴포넌트에 순서 변경 알림
+    emit('orderChanged', day);
+  }
 }
 
 function getAccommodationIcon(place: PlaceResult): string {
