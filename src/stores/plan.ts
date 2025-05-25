@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
+import { createTripPlan, type CreateTripPlanRequest } from '@/services/api';
 
 interface DateRange {
   start: Date | null;
@@ -202,6 +203,82 @@ export const usePlanStore = defineStore('plan', () => {
     });
   };
 
+  const isSubmitting = ref(false);
+
+  // 여행 계획 제출 함수
+  const submitTripPlan = async (cityId: number, cityName: string) => {
+    if (isSubmitting.value) return;
+
+    try {
+      isSubmitting.value = true;
+
+      // 데이터 변환
+      const planData = convertToPlanData(cityId, cityName);
+
+      // API 요청
+      const response = await createTripPlan(planData);
+
+      if ('data' in response) {
+        console.log('여행 계획 생성 성공:', response.data.tripId);
+        // 성공 시 처리 (예: 결과 페이지로 이동)
+        return response.data.tripId;
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('여행 계획 생성 실패:', error);
+      throw error;
+    } finally {
+      isSubmitting.value = false;
+    }
+  };
+
+  // store 데이터를 API 형식으로 변환
+  const convertToPlanData = (cityId: number, cityName: string): CreateTripPlanRequest => {
+    const places: CreateTripPlanRequest['places'] = [];
+    let globalOrder = 1;
+
+    // 각 일차별로 순서대로 처리
+    for (let day = 1; day <= getTravelDays.value; day++) {
+      const dayPlan = dayPlans.value[day];
+      if (!dayPlan) continue;
+
+      // 숙소 먼저 추가 (있는 경우)
+      if (dayPlan.accommodation) {
+        places.push({
+          placeId: dayPlan.accommodation.placeId,
+          name: dayPlan.accommodation.name,
+          latitude: dayPlan.accommodation.location.lat(),
+          longitude: dayPlan.accommodation.location.lng(),
+          day: day,
+          order: globalOrder++,
+          placeType: 1, // 숙소
+        });
+      }
+
+      // 일반 장소들 추가
+      dayPlan.places.forEach(place => {
+        places.push({
+          placeId: place.placeId,
+          name: place.name,
+          latitude: place.location.lat(),
+          longitude: place.location.lng(),
+          day: day,
+          order: globalOrder++,
+          placeType: 2, // 명소
+        });
+      });
+    }
+    return {
+      friendUserIds: [], // TODO: 실제 친구 ID로 변환 필요
+      cityId: cityId,
+      startDate: selectedDateRange.value.start?.toISOString() || '',
+      endDate: selectedDateRange.value.end?.toISOString() || '',
+      title: `${cityName} 여행`,
+      places: places,
+    };
+  };
+
   return {
     // State
     currentStep,
@@ -240,5 +317,7 @@ export const usePlanStore = defineStore('plan', () => {
     updateAccommodationSettings,
     updateSearchFilters,
     formatDate,
+    isSubmitting,
+    submitTripPlan,
   };
 });
