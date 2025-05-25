@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import TripHeader from '@/components/views/recordList/TripHeader.vue';
 import TripStorySection from '@/components/views/recordList/TripStorySection.vue';
 import {
   fetchAllTripRecords,
@@ -56,31 +57,27 @@ onMounted(() => {
 
 <template>
   <div class="mx-auto h-full max-w-screen-xl px-4 py-8">
-    <!-- 헤더 -->
-    <div class="mb-6 text-center sm:mb-8 lg:mb-10">
-      <h2 class="mb-2 text-xl font-bold text-gray-800 sm:mb-3 sm:text-2xl lg:text-3xl">
-        AI 후기 리스트
-      </h2>
-      <p class="text-sm text-gray-600 sm:text-base lg:text-lg">
-        AI가 생성해주는 블로그 초안을 만나보세요~~~~
-      </p>
-    </div>
-
-    <!-- 로딩 상태 - 전체 페이지에 대한 로딩 -->
+    <!-- Loading -->
     <div v-if="isLoading" class="flex h-64 items-center justify-center">
       <div
         class="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"
       ></div>
     </div>
 
-    <!-- 에러 메시지 - 전체 페이지에 대한 에러 -->
-    <div v-else-if="error" class="rounded-md bg-red-50 p-4 text-center text-red-600">
+    <!-- Error -->
+    <div v-else-if="error" class="bg-red-50 p-4 text-center text-red-600">
       {{ error }}
       <Button class="ml-4" @click="loadTripData">다시 시도</Button>
     </div>
 
-    <!-- 데이터가 있는 경우 -->
-    <div v-else>
+    <!-- Trip List -->
+    <div v-else class="px-4 py-6">
+      <!-- Trip Header -->
+      <TripHeader
+        title="AI 후기 리스트"
+        description="AI가 생성해주는 블로그 초안을 만나보세요~~~~"
+      />
+
       <!-- 내 여행 후기 섹션 (처리 필요한 여행) -->
       <div class="mb-12">
         <div class="mb-4 flex items-center justify-between">
