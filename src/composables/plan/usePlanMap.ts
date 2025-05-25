@@ -27,6 +27,7 @@ export const dayColors = [
 
 export function usePlanMap() {
   const markers = ref<CustomMarker[]>([]);
+  const polylines = ref<Map<number, google.maps.Polyline>>(new Map()); // day별 polyline 저장 (단일 polyline)
   const loader = new Loader({
     apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     version: 'weekly',
@@ -129,7 +130,6 @@ export function usePlanMap() {
   }
 
   // 풍부한 InfoWindow 콘텐츠 생성
-  // 풍부한 InfoWindow 콘텐츠 생성 - 가로형 레이아웃
   function createRichInfoWindowContent(place: PlaceResult): string {
     // 평점 표시
     const ratingHTML = place.rating
@@ -388,11 +388,78 @@ export function usePlanMap() {
     );
   }
 
-  // 수정된 addMarkerForDay 함수 - 숙소와 일반 장소 구분
+  // 특정 일차의 polyline 업데이트 - 기존 polyline 재사용
+  function updatePolylineForDay(day: number, dayPlan: DayPlan) {
+    if (!map) return;
+
+    // 숙소가 없으면 polyline 제거
+    if (!dayPlan.accommodation) {
+      const existingPolyline = polylines.value.get(day);
+      if (existingPolyline) {
+        console.log(`Day ${day}: 숙소 없음 - polyline 제거`);
+        existingPolyline.setMap(null);
+        polylines.value.delete(day);
+      }
+      return;
+    }
+
+    // 경로 점들 구성 (숙소 -> 장소1 -> 장소2 -> ... -> 숙소)
+    const path: google.maps.LatLngLiteral[] = [];
+
+    // 숙소를 시작점으로 추가
+    path.push(dayPlan.accommodation.location.toJSON());
+
+    // 모든 장소들을 순서대로 추가
+    dayPlan.places.forEach(place => {
+      path.push(place.location.toJSON());
+    });
+
+    // 다시 숙소로 돌아오는 경로 추가 (장소가 하나 이상 있을 때만)
+    if (dayPlan.places.length > 0) {
+      path.push(dayPlan.accommodation.location.toJSON());
+    }
+
+    // 경로가 2개 미만이면 polyline 제거
+    if (path.length < 2) {
+      const existingPolyline = polylines.value.get(day);
+      if (existingPolyline) {
+        console.log(`Day ${day}: 경로 부족 - polyline 제거`);
+        existingPolyline.setMap(null);
+        polylines.value.delete(day);
+      }
+      return;
+    }
+
+    // 기존 polyline이 있으면 path만 업데이트
+    const existingPolyline = polylines.value.get(day);
+    if (existingPolyline) {
+      console.log(`Day ${day}: 기존 polyline path 업데이트, 경로 점 개수: ${path.length}`);
+      existingPolyline.setPath(path);
+    } else {
+      // 기존 polyline이 없으면 새로 생성
+      console.log(`Day ${day}: 새 polyline 생성, 경로 점 개수: ${path.length}`);
+
+      const polyline = new google.maps.Polyline({
+        path: path,
+        geodesic: true,
+        strokeColor: dayColors[day - 1] || '#888',
+        strokeOpacity: 0.7,
+        strokeWeight: 3,
+        map: map,
+        zIndex: 1,
+        clickable: false,
+      });
+
+      polylines.value.set(day, polyline);
+    }
+  }
+
+  // 수정된 addMarkerForDay 함수 - polyline 업데이트 시 딜레이 제거
   async function addMarkerForDay(
     day: number,
     place: PlaceResult,
-    orderOrType: number | 'accommodation'
+    orderOrType: number | 'accommodation',
+    dayPlan: DayPlan // dayPlan 추가
   ) {
     const { AdvancedMarkerElement } = (await google.maps.importLibrary(
       'marker'
@@ -437,14 +504,20 @@ export function usePlanMap() {
       searchClickMarker.value.map = null;
       searchClickMarker.value = null;
     }
+
+    // Polyline 즉시 업데이트
+    updatePolylineForDay(day, dayPlan);
   }
 
-  async function removeMarkerForDay(day: number, placeId: string) {
+  async function removeMarkerForDay(day: number, placeId: string, dayPlan: DayPlan) {
     const marker = markers.value.find(m => m.placeId === placeId);
     if (marker) {
       marker.map = null;
       markers.value = markers.value.filter(m => m !== marker);
     }
+
+    // Polyline 업데이트
+    updatePolylineForDay(day, dayPlan);
   }
 
   function moveToLocation(position: google.maps.LatLng | google.maps.LatLngLiteral) {
@@ -517,11 +590,20 @@ export function usePlanMap() {
     infoWindow.open(map, searchClickMarker.value);
   }
 
+  // 모든 polyline 제거 (필요시 사용)
+  function clearAllPolylines() {
+    polylines.value.forEach(polyline => {
+      polyline.setMap(null);
+    });
+    polylines.value.clear();
+  }
+
   return {
     initMap,
     addMarkerForDay,
     removeMarkerForDay,
     moveToLocation,
     showMarkerForSearchClick,
+    clearAllPolylines,
   };
 }

@@ -68,8 +68,8 @@
       >
         <button
           class="absolute left-0 h-10 rounded-r-md bg-white px-2 py-2 text-gray-400"
-          @click="planStore.toggleDrawer()"
           style="z-index: 11"
+          @click="planStore.toggleDrawer()"
         >
           <ChevronLeft v-if="planStore.drawerOpen" class="h-5 w-5" />
           <ChevronRight v-else class="h-5 w-5" />
@@ -188,7 +188,8 @@ function handlePlaceClick(place: PlaceResult) {
 
 function handleRemovePlace(day: number, placeId: string) {
   planStore.removePlaceFromDay(day, placeId);
-  removeMarkerForDay(day, placeId);
+  // dayPlan 전달 추가
+  removeMarkerForDay(day, placeId, planStore.dayPlans[day]);
 }
 
 // Step 3용 숙소 모달 열기
@@ -218,12 +219,13 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
     // 기존 숙소가 있다면 마커 제거
     const existingAccommodation = planStore.dayPlans[day]?.accommodation;
     if (existingAccommodation) {
-      removeMarkerForDay(day, existingAccommodation.placeId);
+      removeMarkerForDay(day, existingAccommodation.placeId, planStore.dayPlans[day]);
     }
 
     // 새 숙소 추가
     planStore.addAccommodationToDay(day, place);
-    addMarkerForDay(day, place, 'accommodation');
+    // dayPlan 전달 추가
+    addMarkerForDay(day, place, 'accommodation', planStore.dayPlans[day]);
   });
 
   selectedAccommodationPlace.value = null;
@@ -232,7 +234,8 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
 // Step 4용 장소 확인 핸들러
 function handlePlaceConfirm(day: number, place: PlaceResult) {
   planStore.addPlaceToDay(day, place);
-  addMarkerForDay(day, place, planStore.dayPlans[day].places.length);
+  // dayPlan 전달 추가
+  addMarkerForDay(day, place, planStore.dayPlans[day].places.length, planStore.dayPlans[day]);
   selectedPlace.value = null;
 }
 
