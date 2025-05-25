@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import FeaturePreview from './FeaturePreview.vue';
 import { ArrowRight } from 'lucide-vue-next';
 import type { Component } from 'vue';
+import { computed } from 'vue';
 
 interface Feature {
   icon: Component;
@@ -33,6 +34,27 @@ const handleFeatureClick = () => {
     router.push(route);
   }
 };
+
+// 인덱스에 따른 색상 설정
+const colorClasses = computed(() => {
+  if (props.index === 0) {
+    // 첫 번째 카드 (여행 계획) - 블루 계열
+    return {
+      iconBg: 'bg-gradient-to-br from-blue-50 to-blue-100',
+      iconColor: 'text-blue-600',
+      textColor: 'text-blue-600',
+      dotColor: 'bg-blue-600',
+    };
+  } else {
+    // 두 번째 카드 (AI 여행 후기) - 퍼플 계열
+    return {
+      iconBg: 'bg-gradient-to-br from-purple-50 to-purple-100',
+      iconColor: 'text-purple-600',
+      textColor: 'text-purple-600',
+      dotColor: 'bg-purple-600',
+    };
+  }
+});
 </script>
 
 <template>
@@ -45,16 +67,22 @@ const handleFeatureClick = () => {
         <!-- Icon & Title -->
         <div class="flex items-center gap-4">
           <div
-            class="to-secondary rounded-2xl bg-gradient-to-br from-blue-50 p-3 transition-transform duration-300 group-hover:scale-110"
+            :class="[
+              colorClasses.iconBg,
+              'rounded-2xl p-3 transition-transform duration-300 group-hover:scale-110',
+            ]"
           >
-            <component :is="feature.icon" class="h-6 w-6 text-blue-600" />
+            <component :is="feature.icon" :class="[colorClasses.iconColor, 'h-6 w-6']" />
           </div>
           <div>
             <h3 class="text-xl font-bold text-gray-800">{{ feature.title }}</h3>
             <div class="mt-2 flex items-center gap-2">
-              <span class="font-medium text-blue-600">리스트 보기</span>
+              <span :class="[colorClasses.textColor, 'font-medium']">리스트 보기</span>
               <ArrowRight
-                class="h-4 w-4 text-blue-600 transition-transform duration-300 group-hover:translate-x-1"
+                :class="[
+                  colorClasses.textColor,
+                  'h-4 w-4 transition-transform duration-300 group-hover:translate-x-1',
+                ]"
               />
             </div>
           </div>
@@ -72,7 +100,7 @@ const handleFeatureClick = () => {
             :key="detailIndex"
             class="flex items-center gap-3"
           >
-            <div class="bg-bold h-2 w-2 rounded-full"></div>
+            <div :class="[colorClasses.dotColor, 'h-2 w-2 rounded-full']"></div>
             <span class="text-gray-700">{{ detail }}</span>
           </div>
         </div>

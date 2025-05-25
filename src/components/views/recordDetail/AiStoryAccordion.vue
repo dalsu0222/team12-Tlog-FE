@@ -14,9 +14,19 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Trash2, RefreshCw, Sparkles, AlertTriangle, Edit3, Save, X } from 'lucide-vue-next';
+import {
+  Trash2,
+  RefreshCw,
+  Sparkles,
+  AlertTriangle,
+  Edit3,
+  Save,
+  X,
+  ArrowRight,
+} from 'lucide-vue-next';
 import api from '@/services/api/api';
 import { toast } from 'vue-sonner';
+import { PenTool } from 'lucide-vue-next';
 
 interface Props {
   tripId: number | string;
@@ -313,20 +323,54 @@ const hasChanges = computed(() => {
 </script>
 
 <template>
-  <AccordionItem value="step2" class="mb-4 overflow-hidden rounded-lg bg-blue-50">
-    <AccordionTrigger class="px-4 py-3 hover:no-underline">
-      <div class="flex items-center">
-        <span class="text-lg font-semibold text-blue-800">Step 2</span>
-        <span class="ml-4 text-lg font-medium">AI 여행 스토리 요약</span>
+  <AccordionItem
+    value="step2"
+    class="group mb-4 overflow-hidden rounded-2xl border-0 bg-gradient-to-br from-white to-gray-50 shadow-md transition-all duration-500 hover:shadow-lg"
+  >
+    <AccordionTrigger class="px-8 py-6 hover:no-underline">
+      <div class="flex items-center gap-4">
+        <div
+          class="rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 p-3 transition-transform duration-300 group-hover:scale-110"
+        >
+          <Sparkles class="h-6 w-6 text-purple-600" />
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-gray-800">AI 여행 후기</h3>
+          <div class="mt-2 flex items-center gap-2">
+            <span class="text-base font-medium text-purple-600">AI 스토리 생성하기</span>
+            <ArrowRight
+              class="h-4 w-4 text-purple-600 transition-transform duration-300 group-hover:translate-x-1"
+            />
+          </div>
+        </div>
       </div>
     </AccordionTrigger>
-    <AccordionContent class="px-4 pb-4">
-      <div class="mb-4 text-sm text-gray-600">
-        AI가 여행 스토리를 바탕으로 여행 기록을 생성합니다.
+    <AccordionContent class="px-8 pb-6">
+      <div class="space-y-4">
+        <!-- Description -->
+        <p class="text-base leading-relaxed text-gray-600">
+          AI가 여행 기록을 바탕으로 감성적인 블로그를 생성해드려요
+        </p>
+
+        <!-- Feature Details -->
+        <!-- <div class="space-y-2">
+          <div class="flex items-center gap-3">
+            <div class="h-2 w-2 rounded-full bg-purple-600"></div>
+            <span class="text-base text-gray-700">여행 계획 기반 자동 생성</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="h-2 w-2 rounded-full bg-purple-600"></div>
+            <span class="text-base text-gray-700">감성적인 블로그 형식 여행 스토리</span>
+          </div>
+        </div> -->
+        <div class="flex items-center gap-2 p-0 text-xs text-purple-600">
+          <PenTool class="h-4 w-4" />
+          <span class="text-base">편집 가능한 마크다운 형식</span>
+        </div>
       </div>
 
       <!-- 지속적인 에러 메시지만 표시 (예: 타임아웃 등) -->
-      <div v-if="errorMessage" class="mb-4">
+      <div v-if="errorMessage" class="mt-6 mb-4">
         <div class="rounded-lg border border-red-200 bg-red-50 p-3">
           <div class="flex items-center gap-2">
             <AlertTriangle class="h-4 w-4 text-red-500" />
@@ -336,62 +380,69 @@ const hasChanges = computed(() => {
       </div>
 
       <!-- 스토리가 없는 경우 -->
-      <div v-if="!hasStory" class="py-8 text-center">
-        <div class="mb-6">
-          <div
-            class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-blue-100"
-          >
-            <Sparkles class="h-8 w-8 text-purple-600" />
-          </div>
-
-          <!-- 상태에 따른 메시지 표시 -->
-          <div v-if="isGeneratingStory">
-            <p class="text-gray-600">AI가 여행 기록을 분석하고 있어요... 잠시만 기다려주세요</p>
-            <p class="mt-1 text-sm text-gray-500">멋진 스토리를 만들어드릴게요</p>
-          </div>
-          <div v-else>
-            <p class="text-gray-600">아직 생성된 여행 스토리가 없습니다.</p>
-            <p class="mt-1 text-sm text-gray-500">
-              AI가 당신의 여행을 감동적인 이야기로 만들어드려요
-            </p>
-          </div>
-        </div>
-
-        <Button
-          @click="generateAiStory"
-          :disabled="isGeneratingStory"
-          class="inline-flex items-center gap-3 bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 text-white shadow-lg transition-all hover:from-purple-700 hover:to-blue-700 hover:shadow-xl disabled:opacity-50"
-          size="lg"
+      <div v-if="!hasStory" class="mt-6">
+        <!-- 그라데이션 배경 컨테이너 -->
+        <div
+          class="rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-purple-50 p-8 text-center"
         >
-          <Sparkles class="h-5 w-5" :class="{ 'animate-spin': isGeneratingStory }" />
-          <span v-if="isGeneratingStory" class="font-medium">마법을 부리는 중...</span>
-          <span v-else class="font-medium">AI 스토리 생성하기</span>
-        </Button>
+          <div class="mb-6">
+            <!-- 그라데이션 아이콘 컨테이너 -->
+            <div
+              class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-blue-100"
+            >
+              <Sparkles class="h-8 w-8 text-purple-600" />
+            </div>
 
-        <!-- 진행 상황 표시 (생성 중일 때) -->
-        <div v-if="isGeneratingStory" class="mt-4 text-sm text-gray-500">
-          <div class="flex items-center justify-center gap-2">
-            <div class="h-2 w-2 animate-pulse rounded-full bg-purple-400"></div>
-            <div
-              class="h-2 w-2 animate-pulse rounded-full bg-purple-400"
-              style="animation-delay: 0.2s"
-            ></div>
-            <div
-              class="h-2 w-2 animate-pulse rounded-full bg-purple-400"
-              style="animation-delay: 0.4s"
-            ></div>
+            <!-- 상태에 따른 메시지 표시 -->
+            <div v-if="isGeneratingStory">
+              <p class="text-gray-700">AI가 여행 기록을 분석하고 있어요... 잠시만 기다려주세요</p>
+              <p class="mt-1 text-sm text-gray-600">멋진 스토리를 만들어드릴게요</p>
+            </div>
+            <div v-else>
+              <p class="text-gray-700">아직 생성된 여행 스토리가 없습니다.</p>
+              <p class="mt-1 text-sm text-gray-600">
+                AI가 당신의 여행을 감동적인 이야기로 만들어드려요
+              </p>
+            </div>
+          </div>
+
+          <!-- 그라데이션 생성 버튼 -->
+          <Button
+            @click="generateAiStory"
+            :disabled="isGeneratingStory"
+            class="inline-flex items-center gap-3 bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 text-white shadow-lg transition-all hover:from-purple-700 hover:to-blue-700 hover:shadow-xl disabled:opacity-50"
+            size="lg"
+          >
+            <Sparkles class="h-5 w-5" :class="{ 'animate-spin': isGeneratingStory }" />
+            <span v-if="isGeneratingStory" class="font-medium">마법을 부리는 중...</span>
+            <span v-else class="font-medium">AI 스토리 생성하기</span>
+          </Button>
+
+          <!-- 진행 상황 표시 (생성 중일 때) -->
+          <div v-if="isGeneratingStory" class="mt-4 text-sm text-gray-600">
+            <div class="flex items-center justify-center gap-2">
+              <div class="h-2 w-2 animate-pulse rounded-full bg-purple-400"></div>
+              <div
+                class="h-2 w-2 animate-pulse rounded-full bg-purple-400"
+                style="animation-delay: 0.2s"
+              ></div>
+              <div
+                class="h-2 w-2 animate-pulse rounded-full bg-purple-400"
+                style="animation-delay: 0.4s"
+              ></div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- 스토리가 있는 경우 -->
-      <div v-else>
+      <div v-else class="mt-6">
         <!-- 스토리 컨텐츠 -->
         <div
           class="prose prose-blue max-w-none overflow-hidden rounded-xl border bg-white shadow-sm"
         >
-          <!-- 헤더 with 액션 버튼들 -->
-          <div class="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
+          <!-- 그라데이션 헤더 with 액션 버튼들 -->
+          <div class="bg-gradient-to-r from-purple-500 to-blue-600 px-6 py-4">
             <div class="flex items-center justify-between">
               <h3 class="flex items-center gap-2 text-lg font-semibold text-white">
                 <Sparkles class="h-5 w-5" />
@@ -552,36 +603,36 @@ const hasChanges = computed(() => {
             </div>
           </div>
 
-          <!-- 컨텐츠 영역 -->
-          <div class="p-6">
+          <!-- 컨텐츠 영역 (흰색 배경) -->
+          <div class="bg-gradient-to-br from-gray-50 to-purple-50 p-6">
             <!-- 편집 모드 -->
             <div v-if="isEditing">
               <Textarea
                 v-model="editableContent"
                 :disabled="isSavingStory"
-                class="min-h-96 w-full resize-none border-gray-200 focus:border-blue-500 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                class="min-h-96 w-full resize-none border-gray-200 focus:border-purple-500 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="여행 스토리를 입력하세요..."
               />
 
               <div class="mt-4 flex items-center justify-between text-sm text-gray-500">
                 <div class="flex items-center gap-4">
                   <span>{{ editableContent.length }} 글자</span>
-                  <span v-if="hasChanges && !isSavingStory" class="text-blue-600">
+                  <span v-if="hasChanges && !isSavingStory" class="text-purple-600">
                     • 변경사항이 있습니다
                   </span>
                   <span v-if="isSavingStory" class="text-orange-600">• 저장 중...</span>
                 </div>
 
                 <!-- 저장 진행률 표시 -->
-                <div v-if="isSavingStory" class="flex items-center gap-2 text-blue-600">
+                <div v-if="isSavingStory" class="flex items-center gap-2 text-purple-600">
                   <div class="flex space-x-1">
-                    <div class="h-2 w-2 animate-pulse rounded-full bg-blue-600"></div>
+                    <div class="h-2 w-2 animate-pulse rounded-full bg-purple-600"></div>
                     <div
-                      class="h-2 w-2 animate-pulse rounded-full bg-blue-600"
+                      class="h-2 w-2 animate-pulse rounded-full bg-purple-600"
                       style="animation-delay: 0.2s"
                     ></div>
                     <div
-                      class="h-2 w-2 animate-pulse rounded-full bg-blue-600"
+                      class="h-2 w-2 animate-pulse rounded-full bg-purple-600"
                       style="animation-delay: 0.4s"
                     ></div>
                   </div>

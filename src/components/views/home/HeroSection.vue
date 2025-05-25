@@ -130,7 +130,7 @@ const scrollToFeatures = () => {
     </div>
 
     <!-- 아래로 스크롤 버튼 - 화면 하단에 고정 -->
-    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 transform sm:bottom-6 lg:bottom-3">
+    <div class="absolute inset-x-0 bottom-1 flex justify-center sm:bottom-2 lg:bottom-3">
       <button
         @click="scrollToFeatures"
         class="group flex flex-col items-center gap-1 rounded-full px-4 py-3 text-gray-600 transition-all duration-300 hover:text-blue-600 sm:gap-2 sm:px-6 sm:py-4"
