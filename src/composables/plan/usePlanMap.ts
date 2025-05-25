@@ -4,6 +4,8 @@ import type { PlaceResult } from './usePlaceSearch';
 
 interface CustomMarker extends google.maps.marker.AdvancedMarkerElement {
   placeId: string;
+  day: number;
+  type: 'accommodation' | 'place';
 }
 
 // DayPlan 타입 정의 (TestView.vue와 동일)
@@ -27,6 +29,7 @@ export const dayColors = [
 
 export function usePlanMap() {
   const markers = ref<CustomMarker[]>([]);
+  const polylines = ref<Map<number, google.maps.Polyline>>(new Map()); // day별 polyline 저장 (단일 polyline)
   const loader = new Loader({
     apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     version: 'weekly',
@@ -129,7 +132,6 @@ export function usePlanMap() {
   }
 
   // 풍부한 InfoWindow 콘텐츠 생성
-  // 풍부한 InfoWindow 콘텐츠 생성 - 가로형 레이아웃
   function createRichInfoWindowContent(place: PlaceResult): string {
     // 평점 표시
     const ratingHTML = place.rating
@@ -388,11 +390,102 @@ export function usePlanMap() {
     );
   }
 
-  // 수정된 addMarkerForDay 함수 - 숙소와 일반 장소 구분
-  async function addMarkerForDay(
+  // 특정 일차의 polyline 업데이트 - 수정된 버전
+  function updatePolylineForDay(day: number, dayPlan: DayPlan) {
+    if (!map) return;
+
+    // 경로 점들 구성
+    const path: google.maps.LatLngLiteral[] = [];
+
+    // Case 1: 숙소가 있는 경우
+    if (dayPlan.accommodation) {
+      // 숙소를 시작점으로 추가
+      path.push(dayPlan.accommodation.location.toJSON());
+
+      // 모든 장소들을 순서대로 추가
+      dayPlan.places.forEach(place => {
+        path.push(place.location.toJSON());
+      });
+
+      // 다시 숙소로 돌아오는 경로 추가 (장소가 하나 이상 있을 때만)
+      if (dayPlan.places.length > 0) {
+        path.push(dayPlan.accommodation.location.toJSON());
+      }
+    }
+    // Case 2: 숙소가 없는 경우 - 장소들끼리만 연결
+    else {
+      // 장소들을 순서대로 연결
+      dayPlan.places.forEach(place => {
+        path.push(place.location.toJSON());
+      });
+    }
+
+    // 경로가 2개 미만이면 polyline 제거
+    if (path.length < 2) {
+      const existingPolyline = polylines.value.get(day);
+      if (existingPolyline) {
+        console.log(`Day ${day}: 경로 부족 - polyline 제거`);
+        existingPolyline.setMap(null);
+        polylines.value.delete(day);
+      }
+      return;
+    }
+
+    // 기존 polyline이 있으면 path만 업데이트
+    const existingPolyline = polylines.value.get(day);
+    if (existingPolyline) {
+      console.log(`Day ${day}: 기존 polyline path 업데이트, 경로 점 개수: ${path.length}`);
+      existingPolyline.setPath(path);
+    } else {
+      // 기존 polyline이 없으면 새로 생성
+      console.log(`Day ${day}: 새 polyline 생성, 경로 점 개수: ${path.length}`);
+
+      const polyline = new google.maps.Polyline({
+        path: path,
+        geodesic: true,
+        strokeColor: dayColors[day - 1] || '#888',
+        strokeOpacity: 0.7,
+        strokeWeight: 3,
+        map: map,
+        zIndex: 1,
+        clickable: false,
+      });
+
+      polylines.value.set(day, polyline);
+    }
+  }
+
+  // 특정 일차의 모든 마커를 다시 그리는 함수 (순서 번호 업데이트용)
+  async function refreshMarkersForDay(day: number, dayPlan: DayPlan) {
+    if (!map) return;
+
+    // 해당 일차의 기존 마커들 제거
+    const markersToRemove = markers.value.filter(marker => marker.day === day);
+    markersToRemove.forEach(marker => {
+      marker.map = null;
+    });
+    markers.value = markers.value.filter(marker => marker.day !== day);
+
+    // 숙소 마커 다시 생성
+    if (dayPlan.accommodation) {
+      await addSingleMarker(day, dayPlan.accommodation, 'accommodation');
+    }
+
+    // 장소 마커들 순서대로 다시 생성
+    for (let i = 0; i < dayPlan.places.length; i++) {
+      await addSingleMarker(day, dayPlan.places[i], 'place', i + 1);
+    }
+
+    // Polyline 업데이트
+    updatePolylineForDay(day, dayPlan);
+  }
+
+  // 단일 마커 생성 헬퍼 함수
+  async function addSingleMarker(
     day: number,
     place: PlaceResult,
-    orderOrType: number | 'accommodation'
+    type: 'accommodation' | 'place',
+    order?: number
   ) {
     const { AdvancedMarkerElement } = (await google.maps.importLibrary(
       'marker'
@@ -400,16 +493,10 @@ export function usePlanMap() {
 
     let markerElement;
 
-    if (orderOrType === 'accommodation') {
-      // 숙소용 마커 (호텔 아이콘)
+    if (type === 'accommodation') {
       markerElement = createCustomMarker(0, dayColors[day - 1] ?? '#888', 'accommodation');
     } else {
-      // 일반 장소용 마커 (순서 번호)
-      markerElement = createCustomMarker(
-        orderOrType as number,
-        dayColors[day - 1] ?? '#888',
-        'day'
-      );
+      markerElement = createCustomMarker(order!, dayColors[day - 1] ?? '#888', 'day');
     }
 
     // 마커 생성
@@ -421,6 +508,8 @@ export function usePlanMap() {
     }) as CustomMarker;
 
     marker.placeId = place.placeId;
+    marker.day = day;
+    marker.type = type;
 
     // 클릭 이벤트 추가 - 풍부한 정보창 표시
     marker.addEventListener('gmp-click', () => {
@@ -439,12 +528,32 @@ export function usePlanMap() {
     }
   }
 
-  async function removeMarkerForDay(day: number, placeId: string) {
-    const marker = markers.value.find(m => m.placeId === placeId);
-    if (marker) {
-      marker.map = null;
-      markers.value = markers.value.filter(m => m !== marker);
+  // 기존 addMarkerForDay 함수를 단순화
+  async function addMarkerForDay(
+    day: number,
+    place: PlaceResult,
+    orderOrType: number | 'accommodation',
+    dayPlan: DayPlan
+  ) {
+    if (orderOrType === 'accommodation') {
+      await addSingleMarker(day, place, 'accommodation');
+    } else {
+      await addSingleMarker(day, place, 'place', orderOrType as number);
     }
+
+    // Polyline 업데이트
+    updatePolylineForDay(day, dayPlan);
+  }
+
+  // 마커 제거 후 해당 일차 전체 새로고침
+  async function removeMarkerForDay(day: number, placeId: string, dayPlan: DayPlan) {
+    // 전체 마커 새로고침으로 순서 번호 업데이트
+    await refreshMarkersForDay(day, dayPlan);
+  }
+
+  // 새로운 함수: 드래그로 순서 변경 시 호출
+  async function updateMarkersForDayPlan(day: number, dayPlan: DayPlan) {
+    await refreshMarkersForDay(day, dayPlan);
   }
 
   function moveToLocation(position: google.maps.LatLng | google.maps.LatLngLiteral) {
@@ -517,11 +626,21 @@ export function usePlanMap() {
     infoWindow.open(map, searchClickMarker.value);
   }
 
+  // 모든 polyline 제거 (필요시 사용)
+  function clearAllPolylines() {
+    polylines.value.forEach(polyline => {
+      polyline.setMap(null);
+    });
+    polylines.value.clear();
+  }
+
   return {
     initMap,
     addMarkerForDay,
     removeMarkerForDay,
+    updateMarkersForDayPlan, // 새로 추가된 함수
     moveToLocation,
     showMarkerForSearchClick,
+    clearAllPolylines,
   };
 }

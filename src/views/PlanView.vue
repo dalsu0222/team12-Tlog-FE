@@ -13,11 +13,13 @@
           v-else-if="planStore.currentStep === 3"
           @accommodation-click="handlePlaceClick"
           @remove-accommodation="handleRemovePlace"
+          @order-changed="handleOrderChanged"
         />
         <Step4PlaceSearch
           v-else-if="planStore.currentStep === 4"
           @place-click="handlePlaceClick"
           @remove-place="handleRemovePlace"
+          @order-changed="handleOrderChanged"
         />
       </div>
 
@@ -68,8 +70,8 @@
       >
         <button
           class="absolute left-0 h-10 rounded-r-md bg-white px-2 py-2 text-gray-400"
-          @click="planStore.toggleDrawer()"
           style="z-index: 11"
+          @click="planStore.toggleDrawer()"
         >
           <ChevronLeft v-if="planStore.drawerOpen" class="h-5 w-5" />
           <ChevronRight v-else class="h-5 w-5" />
@@ -99,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, ref } from 'vue';
+import { watch, onMounted, ref, nextTick } from 'vue';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { usePlanStore } from '@/stores/plan';
 import { useRoute } from 'vue-router';
@@ -130,8 +132,14 @@ const route = useRoute();
 const cityName = ref((route.params.cityName as string) || '서울');
 
 // 지도 초기화
-const { initMap, moveToLocation, addMarkerForDay, removeMarkerForDay, showMarkerForSearchClick } =
-  usePlanMap();
+const {
+  initMap,
+  moveToLocation,
+  addMarkerForDay,
+  removeMarkerForDay,
+  showMarkerForSearchClick,
+  updateMarkersForDayPlan,
+} = usePlanMap();
 
 // 모달 관련 상태 - 분리됨
 const selectedAccommodationPlace = ref<PlaceResult | null>(null);
@@ -188,7 +196,21 @@ function handlePlaceClick(place: PlaceResult) {
 
 function handleRemovePlace(day: number, placeId: string) {
   planStore.removePlaceFromDay(day, placeId);
-  removeMarkerForDay(day, placeId);
+  // dayPlan 전달 추가
+  removeMarkerForDay(day, placeId, planStore.dayPlans[day]);
+}
+
+// 🆕 순서 변경 핸들러 - 드래그 앤 드롭으로 순서가 바뀔 때 호출
+function handleOrderChanged(day: number) {
+  // 해당 일차의 DayPlan을 가져와서 지도 업데이트
+  const dayPlan = planStore.dayPlans[day];
+  if (dayPlan) {
+    // setTimeout 사용 지양하고 Vue의 nextTick을 사용
+    // 반응성 업데이트가 완료된 후 실행
+    nextTick(() => {
+      updateMarkersForDayPlan(day, planStore.dayPlans[day]);
+    });
+  }
 }
 
 // Step 3용 숙소 모달 열기
@@ -218,12 +240,13 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
     // 기존 숙소가 있다면 마커 제거
     const existingAccommodation = planStore.dayPlans[day]?.accommodation;
     if (existingAccommodation) {
-      removeMarkerForDay(day, existingAccommodation.placeId);
+      removeMarkerForDay(day, existingAccommodation.placeId, planStore.dayPlans[day]);
     }
 
     // 새 숙소 추가
     planStore.addAccommodationToDay(day, place);
-    addMarkerForDay(day, place, 'accommodation');
+    // dayPlan 전달 추가
+    addMarkerForDay(day, place, 'accommodation', planStore.dayPlans[day]);
   });
 
   selectedAccommodationPlace.value = null;
@@ -232,7 +255,8 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
 // Step 4용 장소 확인 핸들러
 function handlePlaceConfirm(day: number, place: PlaceResult) {
   planStore.addPlaceToDay(day, place);
-  addMarkerForDay(day, place, planStore.dayPlans[day].places.length);
+  // dayPlan 전달 추가
+  addMarkerForDay(day, place, planStore.dayPlans[day].places.length, planStore.dayPlans[day]);
   selectedPlace.value = null;
 }
 
