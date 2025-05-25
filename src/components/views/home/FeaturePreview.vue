@@ -1,17 +1,37 @@
 <script setup lang="ts">
 import { Sparkles, PenTool } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 interface Props {
   index: number;
 }
 
 const props = defineProps<Props>();
+
+// 인덱스에 따른 색상 및 배경 설정
+const colorClasses = computed(() => {
+  if (props.index === 0) {
+    // 첫 번째 카드 (여행 계획) - 블루 계열
+    return {
+      containerBg: 'bg-gradient-to-br from-gray-50 to-blue-50',
+      numberBg: 'bg-blue-500',
+      iconColor: 'text-blue-600',
+      textColor: 'text-blue-600',
+    };
+  } else {
+    // 두 번째 카드 (AI 여행 후기) - 퍼플 계열
+    return {
+      containerBg: 'bg-gradient-to-br from-gray-50 to-purple-50',
+      numberBg: 'bg-purple-500',
+      iconColor: 'text-purple-600',
+      textColor: 'text-purple-600',
+    };
+  }
+});
 </script>
 
 <template>
-  <div
-    class="mt-4 rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-blue-50 p-6"
-  >
+  <div :class="[colorClasses.containerBg, 'mt-4 rounded-2xl border border-gray-100 p-6']">
     <!-- 여행 계획 미리보기 -->
     <div v-if="index === 0" class="space-y-3">
       <div class="flex items-center justify-between">
@@ -21,7 +41,10 @@ const props = defineProps<Props>();
       <div class="space-y-2">
         <div class="flex items-center gap-3 rounded-lg bg-white p-2">
           <div
-            class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white"
+            :class="[
+              colorClasses.numberBg,
+              'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white',
+            ]"
           >
             1
           </div>
@@ -29,7 +52,10 @@ const props = defineProps<Props>();
         </div>
         <div class="flex items-center gap-3 rounded-lg bg-white p-2">
           <div
-            class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white"
+            :class="[
+              colorClasses.numberBg,
+              'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white',
+            ]"
           >
             2
           </div>
@@ -41,7 +67,7 @@ const props = defineProps<Props>();
     <!-- AI 스토리 미리보기 -->
     <div v-else class="space-y-3">
       <div class="flex items-center gap-2">
-        <Sparkles class="h-5 w-5 text-blue-600" />
+        <Sparkles :class="[colorClasses.iconColor, 'h-5 w-5']" />
         <span class="font-semibold text-gray-800">AI가 생성한 여행 스토리</span>
       </div>
       <div class="text-sm leading-relaxed text-gray-600 italic">
@@ -49,7 +75,7 @@ const props = defineProps<Props>();
         <br />
         친구들과 함께한 이 순간이..."
       </div>
-      <div class="flex items-center gap-2 text-xs text-blue-600">
+      <div :class="[colorClasses.textColor, 'flex items-center gap-2 text-xs']">
         <PenTool class="h-4 w-4" />
         <span>편집 가능한 마크다운 형식</span>
       </div>
