@@ -258,7 +258,7 @@ onMounted(() => {
           <MapPin class="h-6 w-6 text-blue-600" />
         </div>
         <div>
-          <h3 class="text-xl font-bold text-gray-800">Step1 여행 기록</h3>
+          <h3 class="text-xl font-bold text-gray-800">여행 기록</h3>
           <div class="mt-2 flex items-center gap-2">
             <span class="text-base font-medium text-blue-600">여행 기록 작성하기</span>
             <ArrowRight

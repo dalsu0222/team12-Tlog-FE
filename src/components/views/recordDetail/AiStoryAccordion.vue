@@ -335,7 +335,7 @@ const hasChanges = computed(() => {
           <Sparkles class="h-6 w-6 text-purple-600" />
         </div>
         <div>
-          <h3 class="text-xl font-bold text-gray-800">Step2 AI 여행 후기</h3>
+          <h3 class="text-xl font-bold text-gray-800">AI 여행 후기</h3>
           <div class="mt-2 flex items-center gap-2">
             <span class="text-base font-medium text-purple-600">AI 스토리 생성하기</span>
             <ArrowRight
