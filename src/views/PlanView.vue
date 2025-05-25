@@ -46,7 +46,7 @@
             <Step3AccommodationDrawer
               v-if="planStore.currentStep === 3"
               ref="accommodationDrawerRef"
-              :city-name="cityName"
+              :city-name="currentCityConfig.cityKo"
               @place-click="handlePlaceClick"
               @open-day-select-modal="openAccommodationModal"
             />
@@ -55,7 +55,7 @@
             <Step4PlaceDrawer
               v-if="planStore.currentStep === 4"
               ref="placeDrawerRef"
-              :city-name="cityName"
+              :city-name="currentCityConfig.cityKo"
               @place-click="handlePlaceClick"
               @open-day-select-modal="openPlaceModal"
             />
@@ -101,11 +101,12 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, ref, nextTick } from 'vue';
+import { watch, onMounted, ref, nextTick, computed } from 'vue';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { usePlanStore } from '@/stores/plan';
 import { useRoute } from 'vue-router';
 import { usePlanMap } from '@/composables/plan';
+import { getCityMapConfig, defaultMapConfig } from '@/constants/cityMapConfig';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
 
 // 컴포넌트들 import
@@ -128,8 +129,27 @@ import PlaceDaySelectModal from '@/components/plan/PlaceDaySelectModal.vue';
 const planStore = usePlanStore();
 const route = useRoute();
 
-// 라우트 파라미터에서 cityId와 cityName 가져오기
-const cityName = ref((route.params.cityName as string) || '서울');
+// 라우트 파라미터에서 도시 정보 가져오기
+const cityId = ref<number>(parseInt(route.params.cityId as string) || 1);
+const cityKo = ref<string>((route.params.cityKo as string) || '서울');
+const cityEn = ref<string>((route.params.cityEn as string) || 'Seoul');
+
+// 현재 도시의 지도 설정 가져오기
+const currentCityConfig = computed(() => {
+  const config = getCityMapConfig(cityId.value);
+  if (config) {
+    return config;
+  }
+
+  // cityId에 해당하는 설정이 없으면 라우트 파라미터 정보로 기본 설정 생성
+  return {
+    ...defaultMapConfig,
+    cityId: cityId.value,
+    cityKo: cityKo.value,
+    cityEn: cityEn.value,
+    searchKeyword: `${cityEn.value}, South Korea`,
+  };
+});
 
 // 지도 초기화
 const {
@@ -151,33 +171,86 @@ const isPlaceModalOpen = ref(false);
 const accommodationDrawerRef = ref<InstanceType<typeof Step3AccommodationDrawer>>();
 const placeDrawerRef = ref<InstanceType<typeof Step4PlaceDrawer>>();
 
-// 지도 초기화 및 도시 위치로 이동
-onMounted(async () => {
-  const map = await initMap();
+// 지도를 특정 도시로 초기화하는 함수
+async function initializeMapForCity() {
+  try {
+    const map = await initMap();
+    if (!map) return;
 
-  // cityName을 기반으로 위치 검색 및 이동
-  if (cityName.value) {
-    try {
-      const { Geocoder } = (await google.maps.importLibrary(
-        'geocoding'
-      )) as google.maps.GeocodingLibrary;
-      const geocoder = new Geocoder();
-
-      const response = await geocoder.geocode({
-        address: cityName.value + ', South Korea',
-        region: 'kr',
-      });
-
-      if (response.results.length > 0) {
-        const location = response.results[0].geometry.location;
-        moveToLocation(location);
-        if (map) map.setZoom(12);
-      }
-    } catch (error) {
-      console.error('도시 위치 검색 오류:', error);
+    // 1. 미리 설정된 좌표가 있으면 바로 이동
+    if (currentCityConfig.value.center) {
+      const location = new google.maps.LatLng(
+        currentCityConfig.value.center.lat,
+        currentCityConfig.value.center.lng
+      );
+      moveToLocation(location);
+      map.setZoom(currentCityConfig.value.zoom);
     }
+
+    // 2. 미리 설정된 좌표가 없으면 지오코딩으로 검색
+    await geocodeAndMoveToCity(map);
+  } catch (error) {
+    console.error('지도 초기화 오류:', error);
   }
+}
+
+// 지오코딩을 통해 도시 위치 검색하고 이동하는 함수
+async function geocodeAndMoveToCity(map: google.maps.Map) {
+  try {
+    const { Geocoder } = (await google.maps.importLibrary(
+      'geocoding'
+    )) as google.maps.GeocodingLibrary;
+    const geocoder = new Geocoder();
+
+    const searchKeyword =
+      currentCityConfig.value.searchKeyword || `${currentCityConfig.value.cityEn}, South Korea`;
+
+    // 지오코드 이용
+    const response = await geocoder.geocode({
+      address: searchKeyword,
+      region: 'kr',
+    });
+
+    if (response.results.length > 0) {
+      const location = response.results[0].geometry.location;
+      moveToLocation(location);
+      map.setZoom(currentCityConfig.value.zoom || 12);
+    } else {
+      console.warn('지오코딩 결과가 없습니다. 기본 위치(서울)로 설정합니다.');
+      // 기본값으로 서울 설정
+      const defaultLocation = new google.maps.LatLng(37.5665, 126.978);
+      moveToLocation(defaultLocation);
+      map.setZoom(12);
+    }
+  } catch (error) {
+    console.error('지오코딩 오류:', error);
+    // 오류 발생시 기본값으로 서울 설정
+    const defaultLocation = new google.maps.LatLng(37.5665, 126.978);
+    moveToLocation(defaultLocation);
+    map.setZoom(12);
+  }
+}
+
+// 컴포넌트 마운트시 지도 초기화
+onMounted(async () => {
+  await initializeMapForCity();
 });
+
+// 라우트 파라미터 변경 감지 (도시 변경시)
+watch(
+  () => route.params,
+  newParams => {
+    if (newParams.cityId) {
+      cityId.value = parseInt(newParams.cityId as string) || 1;
+      cityKo.value = (newParams.cityKo as string) || '서울';
+      cityEn.value = (newParams.cityEn as string) || 'Seoul';
+
+      // 도시가 변경되면 지도를 새로운 도시로 이동
+      initializeMapForCity();
+    }
+  },
+  { deep: true }
+);
 
 // Watch for travel days changes to initialize dayPlans
 watch(
