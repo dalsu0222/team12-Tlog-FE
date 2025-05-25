@@ -1,103 +1,3 @@
-<template>
-  <div class="relative h-screen w-screen overflow-hidden">
-    <!-- 전체 레이아웃 -->
-    <div class="flex h-full">
-      <!-- Stepper 영역 -->
-      <CustomStepper />
-
-      <!-- 내용 영역 -->
-      <div class="relative w-[400px] overflow-y-auto bg-white p-8">
-        <Step1DateSetting v-if="planStore.currentStep === 1" />
-        <Step2FriendInvite v-else-if="planStore.currentStep === 2" />
-        <Step3AccommodationSetting
-          v-else-if="planStore.currentStep === 3"
-          @accommodation-click="handlePlaceClick"
-          @remove-accommodation="handleRemovePlace"
-        />
-        <Step4PlaceSearch
-          v-else-if="planStore.currentStep === 4"
-          @place-click="handlePlaceClick"
-          @remove-place="handleRemovePlace"
-        />
-      </div>
-
-      <!-- Drawer + 토글 버튼 (Step 3, 4에서만 표시) -->
-      <div
-        v-if="planStore.isDrawerVisible"
-        class="flex items-center transition-all duration-400 ease-in-out"
-        :style="{
-          width: planStore.drawerOpen ? '350px' : '0px',
-          minWidth: planStore.drawerOpen ? '350px' : '0px',
-          overflow: 'hidden',
-        }"
-      >
-        <div
-          class="h-full w-[350px] bg-white shadow-lg transition-all duration-400 ease-in-out"
-          :style="{
-            opacity: planStore.drawerOpen && planStore.showDrawerContent ? 1 : 0,
-            transform: planStore.drawerOpen ? 'translateX(0)' : 'translateX(-30px)',
-            pointerEvents: planStore.drawerOpen ? 'auto' : 'none',
-          }"
-        >
-          <div v-if="planStore.showDrawerContent" class="flex h-full flex-col">
-            <!-- Step 3용 Drawer 내용 (숙소 검색) -->
-            <Step3AccommodationDrawer
-              v-if="planStore.currentStep === 3"
-              ref="accommodationDrawerRef"
-              :city-name="cityName"
-              @place-click="handlePlaceClick"
-              @open-day-select-modal="openAccommodationModal"
-            />
-
-            <!-- Step 4용 Drawer 내용 (관광지 검색) -->
-            <Step4PlaceDrawer
-              v-if="planStore.currentStep === 4"
-              ref="placeDrawerRef"
-              :city-name="cityName"
-              @place-click="handlePlaceClick"
-              @open-day-select-modal="openPlaceModal"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- 토글 버튼 (Step 3, 4에서만 표시) -->
-      <div
-        v-if="planStore.isDrawerVisible"
-        class="bg-bold relative flex flex-col items-center justify-center"
-      >
-        <button
-          class="absolute left-0 h-10 rounded-r-md bg-white px-2 py-2 text-gray-400"
-          @click="planStore.toggleDrawer()"
-          style="z-index: 11"
-        >
-          <ChevronLeft v-if="planStore.drawerOpen" class="h-5 w-5" />
-          <ChevronRight v-else class="h-5 w-5" />
-        </button>
-      </div>
-
-      <!-- 지도 영역 -->
-      <div id="map" class="flex-1 transition-all duration-300">
-        <!-- 지도가 여기에 렌더링됩니다 -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Step 3용 숙소 선택 모달 -->
-  <AccommodationDaySelectModal
-    v-model:open="isAccommodationModalOpen"
-    :place="selectedAccommodationPlace"
-    @confirm="handleAccommodationConfirm"
-  />
-
-  <!-- Step 4용 장소 선택 모달 -->
-  <PlaceDaySelectModal
-    v-model:open="isPlaceModalOpen"
-    :place="selectedPlace"
-    @confirm="handlePlaceConfirm"
-  />
-</template>
-
 <script setup lang="ts">
 import { watch, onMounted, ref } from 'vue';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
@@ -276,6 +176,105 @@ watch(
   }
 );
 </script>
+<template>
+  <div class="relative h-screen w-screen overflow-hidden">
+    <!-- 전체 레이아웃 -->
+    <div class="flex h-full">
+      <!-- Stepper 영역 -->
+      <CustomStepper />
+
+      <!-- 내용 영역 -->
+      <div class="relative w-[400px] overflow-y-auto bg-white p-8">
+        <Step1DateSetting v-if="planStore.currentStep === 1" />
+        <Step2FriendInvite v-else-if="planStore.currentStep === 2" />
+        <Step3AccommodationSetting
+          v-else-if="planStore.currentStep === 3"
+          @accommodation-click="handlePlaceClick"
+          @remove-accommodation="handleRemovePlace"
+        />
+        <Step4PlaceSearch
+          v-else-if="planStore.currentStep === 4"
+          @place-click="handlePlaceClick"
+          @remove-place="handleRemovePlace"
+        />
+      </div>
+
+      <!-- Drawer + 토글 버튼 (Step 3, 4에서만 표시) -->
+      <div
+        v-if="planStore.isDrawerVisible"
+        class="flex items-center transition-all duration-400 ease-in-out"
+        :style="{
+          width: planStore.drawerOpen ? '350px' : '0px',
+          minWidth: planStore.drawerOpen ? '350px' : '0px',
+          overflow: 'hidden',
+        }"
+      >
+        <div
+          class="h-full w-[350px] bg-white shadow-lg transition-all duration-400 ease-in-out"
+          :style="{
+            opacity: planStore.drawerOpen && planStore.showDrawerContent ? 1 : 0,
+            transform: planStore.drawerOpen ? 'translateX(0)' : 'translateX(-30px)',
+            pointerEvents: planStore.drawerOpen ? 'auto' : 'none',
+          }"
+        >
+          <div v-if="planStore.showDrawerContent" class="flex h-full flex-col">
+            <!-- Step 3용 Drawer 내용 (숙소 검색) -->
+            <Step3AccommodationDrawer
+              v-if="planStore.currentStep === 3"
+              ref="accommodationDrawerRef"
+              :city-name="cityName"
+              @place-click="handlePlaceClick"
+              @open-day-select-modal="openAccommodationModal"
+            />
+
+            <!-- Step 4용 Drawer 내용 (관광지 검색) -->
+            <Step4PlaceDrawer
+              v-if="planStore.currentStep === 4"
+              ref="placeDrawerRef"
+              :city-name="cityName"
+              @place-click="handlePlaceClick"
+              @open-day-select-modal="openPlaceModal"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- 토글 버튼 (Step 3, 4에서만 표시) -->
+      <div
+        v-if="planStore.isDrawerVisible"
+        class="bg-bold relative flex flex-col items-center justify-center"
+      >
+        <button
+          class="absolute left-0 h-10 rounded-r-md bg-white px-2 py-2 text-gray-400"
+          @click="planStore.toggleDrawer()"
+          style="z-index: 11"
+        >
+          <ChevronLeft v-if="planStore.drawerOpen" class="h-5 w-5" />
+          <ChevronRight v-else class="h-5 w-5" />
+        </button>
+      </div>
+
+      <!-- 지도 영역 -->
+      <div id="map" class="flex-1 transition-all duration-300">
+        <!-- 지도가 여기에 렌더링됩니다 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3용 숙소 선택 모달 -->
+  <AccommodationDaySelectModal
+    v-model:open="isAccommodationModalOpen"
+    :place="selectedAccommodationPlace"
+    @confirm="handleAccommodationConfirm"
+  />
+
+  <!-- Step 4용 장소 선택 모달 -->
+  <PlaceDaySelectModal
+    v-model:open="isPlaceModalOpen"
+    :place="selectedPlace"
+    @confirm="handlePlaceConfirm"
+  />
+</template>
 
 <style scoped>
 .whitespace-pre-line {

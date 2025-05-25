@@ -23,6 +23,14 @@ interface TripStory {
   participants?: number[]; // 참여자 ID 목록 (옵션)
 }
 
+// 버튼 설정 타입 정의
+interface ButtonConfig {
+  completedText: string; // 완료된 경우 버튼 텍스트
+  incompleteText: string; // 미완료인 경우 버튼 텍스트
+  useStep2Status?: boolean; // Step2 상태를 기준으로 할지 여부 (기본값: true)
+  sameButton?: boolean;
+}
+
 defineProps({
   stories: {
     type: Array as PropType<TripStory[]>,
@@ -32,6 +40,15 @@ defineProps({
     type: String,
     default: '',
   },
+  buttonConfig: {
+    type: Object as PropType<ButtonConfig>,
+    default: () => ({
+      completedText: '후기 보기',
+      incompleteText: '후기 작성',
+      useStep2Status: true,
+      sameButton: false,
+    }),
+  },
 });
 
 const emit = defineEmits(['navigate']);
@@ -39,6 +56,11 @@ const emit = defineEmits(['navigate']);
 // 페이지 이동 핸들러
 const handleNavigate = (tripId: number, isCompleted: boolean) => {
   emit('navigate', { tripId, isCompleted });
+};
+
+// 완료 상태 확인 함수
+const getCompletionStatus = (story: TripStory, buttonConfig: ButtonConfig) => {
+  return buttonConfig.useStep2Status ? story.isStep2Completed : story.isStep1Completed;
 };
 </script>
 
@@ -48,12 +70,14 @@ const handleNavigate = (tripId: number, isCompleted: boolean) => {
     <h2 v-if="title" class="mb-4 text-xl font-semibold text-gray-800">{{ title }}</h2>
 
     <!-- Carousel 컴포넌트 사용 - 패딩 추가로 그림자 잘림 방지 -->
-    <div class="px-2 py-4">
+    <div class="px-2 py-4 sm:px-4 lg:px-8">
       <Carousel
         class="relative w-full"
         :opts="{
           align: 'start',
           loop: false,
+          containScroll: 'trimSnaps',
+          skipSnaps: true,
         }"
       >
         <CarouselContent class="-ml-4">
@@ -148,10 +172,27 @@ const handleNavigate = (tripId: number, isCompleted: boolean) => {
 
                     <Button
                       size="sm"
-                      @click="handleNavigate(story.tripId || story.id, story.isStep2Completed)"
-                      :variant="story.isStep2Completed ? 'outline' : 'default'"
+                      @click="
+                        handleNavigate(
+                          story.tripId || story.id,
+                          getCompletionStatus(story, buttonConfig)
+                        )
+                      "
+                      :variant="
+                        buttonConfig.sameButton
+                          ? 'default'
+                          : getCompletionStatus(story, buttonConfig)
+                            ? 'outline'
+                            : 'default'
+                      "
                     >
-                      {{ story.isStep2Completed ? '후기 보기' : '후기 작성' }}
+                      {{
+                        buttonConfig.sameButton
+                          ? buttonConfig.completedText
+                          : getCompletionStatus(story, buttonConfig)
+                            ? buttonConfig.completedText
+                            : buttonConfig.incompleteText
+                      }}
                     </Button>
                   </div>
                 </CardContent>

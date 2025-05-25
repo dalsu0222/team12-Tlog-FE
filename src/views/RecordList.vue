@@ -77,7 +77,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="from-primary to-secondary bg-gradient-to-br via-white">
+  <div>
     <!-- Loading 상태 - 전체 화면 중앙 -->
     <div v-if="isLoading" class="flex h-screen items-center justify-center">
       <div

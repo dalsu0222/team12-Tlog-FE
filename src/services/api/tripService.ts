@@ -20,7 +20,7 @@ export interface TripInfoDto {
 }
 
 export interface TripDto {
-  tripId: number; // ✅ tripId 추가
+  tripId: number;
   title: string;
   createdAt: string;
   startDate: string;

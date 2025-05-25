@@ -32,7 +32,7 @@ const scrollToCompleted = () => {
 
 <template>
   <div id="incomplete-stories-section" class="h-[calc(100vh-4rem)]">
-    <div class="flex min-h-full flex-col justify-center py-8 sm:py-12 lg:py-16">
+    <div class="flex min-h-full flex-col justify-center bg-gray-50 py-8 sm:py-12 lg:py-16">
       <div class="mx-auto max-w-screen-xl px-4">
         <!-- Trip Header -->
         <TripHeader
@@ -70,13 +70,13 @@ const scrollToCompleted = () => {
     <!-- 아래로 스크롤 버튼 - 완료된 후기가 있는 경우에만 표시 -->
     <div
       v-if="hasCompletedStories"
-      class="absolute inset-x-0 bottom-4 flex justify-center sm:bottom-6 lg:bottom-8"
+      class="absolute inset-x-0 bottom-1 flex justify-center sm:bottom-2 lg:bottom-3"
     >
       <button
         @click="scrollToCompleted"
         class="group flex flex-col items-center gap-1 rounded-full px-4 py-3 text-gray-600 transition-all duration-300 hover:text-blue-600 sm:gap-2 sm:px-6 sm:py-4"
       >
-        <span class="text-xs font-medium sm:text-sm">완료된 여행 후기 보기</span>
+        <span class="text-xs font-medium sm:text-sm">작성이 완료된 여행 후기 보기</span>
         <div
           class="rounded-full bg-white/80 p-1.5 shadow-sm transition-colors duration-300 group-hover:bg-blue-50 sm:p-2"
         >
