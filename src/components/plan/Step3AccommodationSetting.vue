@@ -115,46 +115,47 @@ function getDateForDay(day: number): string {
     weekday: 'short',
   });
 }
+const accommodationIconMap: Record<string, string> = {
+  hotel: '🏨',
+  lodging: '🏨',
+  motel: '🏩',
+  resort: '🏖️',
+  campground: '🏕️',
+  rv_park: '🏕️',
+  spa: '♨️',
+  guest_house: '🏠',
+  hostel: '🛏️',
+  apartment: '🏢',
+  real_estate_agency: '🏢',
+};
+
+const nameKeywordMap: Record<string, string> = {
+  펜션: '🏡',
+  리조트: '🏖️',
+  모텔: '🏩',
+  게스트하우스: '🏠',
+  민박: '🏠',
+  호스텔: '🛏️',
+  캠핑: '🏕️',
+  글램핑: '🏕️',
+  스파: '♨️',
+  온천: '♨️',
+};
 
 function getAccommodationIcon(place: PlaceResult): string {
   if (!place.types) return '🏨';
 
-  // 숙소 유형별 아이콘 매핑
+  // 타입 기반 매핑
   for (const type of place.types) {
-    switch (type.toLowerCase()) {
-      case 'hotel':
-      case 'lodging':
-        return '🏨'; // 호텔
-      case 'motel':
-        return '🏩'; // 모텔
-      case 'resort':
-        return '🏖️'; // 리조트
-      case 'campground':
-      case 'rv_park':
-        return '🏕️'; // 캠핑장
-      case 'spa':
-        return '♨️'; // 스파
-      case 'guest_house':
-        return '🏠'; // 게스트하우스
-      case 'hostel':
-        return '🛏️'; // 호스텔
-      case 'apartment':
-      case 'real_estate_agency':
-        return '🏢'; // 아파트/숙박업소
-      default:
-        continue;
-    }
+    const icon = accommodationIconMap[type.toLowerCase()];
+    if (icon) return icon;
   }
 
-  // 숙소 이름으로 추가 판단
+  // 이름 기반 매핑
   const name = place.name.toLowerCase();
-  if (name.includes('펜션')) return '🏡';
-  if (name.includes('리조트')) return '🏖️';
-  if (name.includes('모텔')) return '🏩';
-  if (name.includes('게스트하우스') || name.includes('민박')) return '🏠';
-  if (name.includes('호스텔')) return '🛏️';
-  if (name.includes('캠핑') || name.includes('글램핑')) return '🏕️';
-  if (name.includes('스파') || name.includes('온천')) return '♨️';
+  for (const [keyword, icon] of Object.entries(nameKeywordMap)) {
+    if (name.includes(keyword)) return icon;
+  }
 
   return '🏨';
 }

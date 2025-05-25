@@ -390,35 +390,34 @@ export function usePlanMap() {
     );
   }
 
-  // 특정 일차의 polyline 업데이트 - 기존 polyline 재사용
+  // 특정 일차의 polyline 업데이트 - 수정된 버전
   function updatePolylineForDay(day: number, dayPlan: DayPlan) {
     if (!map) return;
 
-    // 숙소가 없으면 polyline 제거
-    if (!dayPlan.accommodation) {
-      const existingPolyline = polylines.value.get(day);
-      if (existingPolyline) {
-        console.log(`Day ${day}: 숙소 없음 - polyline 제거`);
-        existingPolyline.setMap(null);
-        polylines.value.delete(day);
-      }
-      return;
-    }
-
-    // 경로 점들 구성 (숙소 -> 장소1 -> 장소2 -> ... -> 숙소)
+    // 경로 점들 구성
     const path: google.maps.LatLngLiteral[] = [];
 
-    // 숙소를 시작점으로 추가
-    path.push(dayPlan.accommodation.location.toJSON());
-
-    // 모든 장소들을 순서대로 추가
-    dayPlan.places.forEach(place => {
-      path.push(place.location.toJSON());
-    });
-
-    // 다시 숙소로 돌아오는 경로 추가 (장소가 하나 이상 있을 때만)
-    if (dayPlan.places.length > 0) {
+    // Case 1: 숙소가 있는 경우
+    if (dayPlan.accommodation) {
+      // 숙소를 시작점으로 추가
       path.push(dayPlan.accommodation.location.toJSON());
+
+      // 모든 장소들을 순서대로 추가
+      dayPlan.places.forEach(place => {
+        path.push(place.location.toJSON());
+      });
+
+      // 다시 숙소로 돌아오는 경로 추가 (장소가 하나 이상 있을 때만)
+      if (dayPlan.places.length > 0) {
+        path.push(dayPlan.accommodation.location.toJSON());
+      }
+    }
+    // Case 2: 숙소가 없는 경우 - 장소들끼리만 연결
+    else {
+      // 장소들을 순서대로 연결
+      dayPlan.places.forEach(place => {
+        path.push(place.location.toJSON());
+      });
     }
 
     // 경로가 2개 미만이면 polyline 제거
