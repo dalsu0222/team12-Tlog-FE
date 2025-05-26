@@ -36,7 +36,7 @@ const loadTripData = async () => {
 
 const handleNavigate = ({ tripId, isCompleted }: { tripId: number; isCompleted: boolean }) => {
   // 계획 상세 페이지로 이동 (예: /plans/123)
-  router.push(`/plans/${tripId}`);
+  router.push(`/plan/${tripId}`);
 };
 
 const goToCreateTrip = () => {
