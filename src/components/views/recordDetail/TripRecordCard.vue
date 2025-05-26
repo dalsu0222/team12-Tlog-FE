@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 interface TripPlan {
   day: number;
   plans: {
-    memo: string;
+    placeName: string; // placeName 추가
     [key: string]: any;
   }[];
 }
@@ -14,7 +14,7 @@ interface TripPlan {
 interface Props {
   plan: TripPlan;
   memo: string;
-  date?: Date; // 날짜 prop 추가
+  date?: Date;
 }
 
 const props = defineProps<Props>();
@@ -31,7 +31,7 @@ watch(
   newMemo => {
     cardMemo.value = newMemo;
   },
-  { immediate: true } // 컴포넌트 생성 시 즉시 실행
+  { immediate: true }
 );
 
 // 사용자 입력 처리
@@ -82,7 +82,8 @@ const formatDate = (date: Date): string => {
           >
             {{ index + 1 }}
           </div>
-          <span class="text-sm">{{ item.memo || '장소 정보가 없습니다' }}</span>
+          <!-- placeName을 사용하도록 변경 -->
+          <span class="text-sm">{{ item.placeName || '장소 정보가 없습니다' }}</span>
         </div>
       </div>
       <div v-else class="py-4 text-center text-sm text-gray-500">일정이 없습니다</div>
