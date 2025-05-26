@@ -39,7 +39,6 @@
     </Button>
   </div>
 </template>
-
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Stepper, StepperItem, StepperTrigger } from '@/components/ui/stepper';
@@ -61,6 +60,11 @@ const handleStepAction = async () => {
 
       // 성공시 결과 페이지로 이동 또는 성공 메시지 표시
       alert(`여행 계획이 성공적으로 생성되었습니다! (Trip ID: ${tripId})`);
+
+      // 성공시 디테일 페이지로 이동
+      await router.push({
+        path: `/plan/${tripId}`,
+      });
 
       // 필요시 다른 페이지로 라우팅
       // router.push(`/trip/${tripId}`);

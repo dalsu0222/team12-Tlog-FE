@@ -50,7 +50,7 @@ const router = createRouter({
     },
 
     {
-      path: '/plans/:id',
+      path: '/plan/:id',
       name: 'plan-detail',
       component: () => import('@/views/PlanDetail.vue'),
       props: true,
