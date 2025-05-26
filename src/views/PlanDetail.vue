@@ -253,35 +253,20 @@ const addMarkersToMap = async () => {
     const accommodations = plans.filter(plan => plan.placeTypeId === 1); // 숙박시설
     const regularPlaces = plans.filter(plan => plan.placeTypeId !== 1); // 숙박시설이 아닌 곳들
 
+    const createPlaceFromPlan = (plan: Plan) => ({
+      placeId: plan.placeId,
+      name: plan.placeName,
+      location: new google.maps.LatLng(plan.latitude, plan.longitude),
+      address: '',
+      types: getPlaceTypesFromId(plan.placeTypeId),
+      rating: 0,
+      userRatingsTotal: 0,
+      description: plan.memo || getDefaultDescriptionForType(plan.placeTypeId),
+    });
+
     const dayPlan = {
-      accommodation:
-        accommodations.length > 0
-          ? {
-              placeId: accommodations[0].placeId,
-              name: accommodations[0].placeName,
-              location: new google.maps.LatLng(
-                accommodations[0].latitude,
-                accommodations[0].longitude
-              ),
-              address: '',
-              types: ['lodging'], // 숙소 타입 추가
-              rating: 0,
-              userRatingsTotal: 0,
-              // memo 정보를 description으로 활용
-              description: accommodations[0].memo || '편안한 숙박을 위한 최적의 장소입니다.',
-            }
-          : undefined,
-      places: regularPlaces.map(p => ({
-        placeId: p.placeId,
-        name: p.placeName,
-        location: new google.maps.LatLng(p.latitude, p.longitude),
-        address: '',
-        types: getPlaceTypesFromId(p.placeTypeId), // 타입 정보 추가
-        rating: 0,
-        userRatingsTotal: 0,
-        // memo 정보를 description으로 활용
-        description: p.memo || getDefaultDescriptionForType(p.placeTypeId),
-      })),
+      accommodation: accommodations.length > 0 ? createPlaceFromPlan(accommodations[0]) : undefined,
+      places: regularPlaces.map(createPlaceFromPlan),
     };
 
     // 숙소 마커 추가 (있는 경우)
@@ -291,17 +276,7 @@ const addMarkersToMap = async () => {
 
     // 일반 장소 마커들을 순서대로 추가
     regularPlaces.forEach((plan, index) => {
-      const place = {
-        placeId: plan.placeId,
-        name: plan.placeName,
-        location: new google.maps.LatLng(plan.latitude, plan.longitude),
-        address: '',
-        types: getPlaceTypesFromId(plan.placeTypeId), // 타입 정보 추가
-        rating: 0,
-        userRatingsTotal: 0,
-        // memo 정보를 description으로 활용
-        description: plan.memo || getDefaultDescriptionForType(plan.placeTypeId),
-      };
+      const place = createPlaceFromPlan(plan);
 
       addMarkerForDay(
         Number(day),
