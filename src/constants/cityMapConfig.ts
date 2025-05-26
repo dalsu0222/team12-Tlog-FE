@@ -1,4 +1,13 @@
 // @/config/cityMapConfig.ts - 도시별 지도 초기 설정
+
+// 도시 크기 분류
+export enum CitySize {
+  SMALL = 'small', // 작은 도시/관광지 (예: 경주, 강릉, 전주)
+  MEDIUM = 'medium', // 중간 규모 도시 (예: 부산, 대전, 인천)
+  LARGE = 'large', // 대도시 (예: 서울, 도쿄, 뉴욕)
+  EXTRA_LARGE = 'extra_large', // 메가시티/광역도시 (예: 로스앤젤레스, 하와이)
+}
+
 interface CityMapConfig {
   cityId: number;
   cityKo: string;
@@ -9,6 +18,20 @@ interface CityMapConfig {
   };
   zoom: number;
   searchKeyword?: string; // 지오코딩 검색시 사용할 키워드
+  size: CitySize; // 도시 크기 정보 추가
+}
+
+// 도시 크기별 기본 줌 레벨 설정
+export const ZOOM_LEVELS = {
+  [CitySize.SMALL]: 14, // 작은 도시는 더 자세히
+  [CitySize.MEDIUM]: 12.5, // 중간 도시는 적당히
+  [CitySize.LARGE]: 11, // 큰 도시는 넓게
+  [CitySize.EXTRA_LARGE]: 10, // 메가시티는 매우 넓게
+};
+
+// 동적 줌 레벨 계산 함수
+export function calculateDynamicZoom(cityConfig: CityMapConfig): number {
+  return ZOOM_LEVELS[cityConfig.size] || ZOOM_LEVELS[CitySize.MEDIUM];
 }
 
 export const cityMapConfigs: Record<number, CityMapConfig> = {
@@ -20,6 +43,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 34.6937, lng: 135.5023 },
     zoom: 12,
     searchKeyword: 'Osaka, Japan',
+    size: CitySize.MEDIUM,
   },
   2: {
     cityId: 2,
@@ -28,6 +52,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 35.6762, lng: 139.6503 },
     zoom: 12,
     searchKeyword: 'Tokyo, Japan',
+    size: CitySize.LARGE,
   },
   3: {
     cityId: 3,
@@ -36,6 +61,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 33.5904, lng: 130.4017 },
     zoom: 12,
     searchKeyword: 'Fukuoka, Japan',
+    size: CitySize.MEDIUM,
   },
 
   // 한국
@@ -46,6 +72,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 33.4996, lng: 126.5312 },
     zoom: 11,
     searchKeyword: 'Jeju Island, South Korea',
+    size: CitySize.LARGE,
   },
   5: {
     cityId: 5,
@@ -54,6 +81,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 35.1796, lng: 129.0756 },
     zoom: 12,
     searchKeyword: 'Busan, South Korea',
+    size: CitySize.MEDIUM,
   },
   6: {
     cityId: 6,
@@ -62,6 +90,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.5665, lng: 126.978 },
     zoom: 12,
     searchKeyword: 'Seoul, South Korea',
+    size: CitySize.LARGE,
   },
   8: {
     cityId: 8,
@@ -70,6 +99,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 35.8562, lng: 129.2247 },
     zoom: 13,
     searchKeyword: 'Gyeongju, South Korea',
+    size: CitySize.SMALL,
   },
   10: {
     cityId: 10,
@@ -78,6 +108,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.7519, lng: 128.8761 },
     zoom: 13,
     searchKeyword: 'Gangneung, South Korea',
+    size: CitySize.SMALL,
   },
   13: {
     cityId: 13,
@@ -86,6 +117,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 34.7604, lng: 127.6622 },
     zoom: 13,
     searchKeyword: 'Yeosu, South Korea',
+    size: CitySize.MEDIUM,
   },
   18: {
     cityId: 18,
@@ -94,6 +126,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 34.8808, lng: 128.6214 },
     zoom: 12,
     searchKeyword: 'Geoje, South Korea',
+    size: CitySize.SMALL,
   },
   23: {
     cityId: 23,
@@ -102,6 +135,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 35.8242, lng: 127.148 },
     zoom: 13,
     searchKeyword: 'Jeonju, South Korea',
+    size: CitySize.SMALL,
   },
   24: {
     cityId: 24,
@@ -110,6 +144,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 35.4164, lng: 127.3903 },
     zoom: 13,
     searchKeyword: 'Namwon, South Korea',
+    size: CitySize.SMALL,
   },
   29: {
     cityId: 29,
@@ -118,6 +153,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 36.019, lng: 129.3435 },
     zoom: 12,
     searchKeyword: 'Pohang, South Korea',
+    size: CitySize.MEDIUM,
   },
   30: {
     cityId: 30,
@@ -126,6 +162,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 36.3504, lng: 127.3845 },
     zoom: 12,
     searchKeyword: 'Daejeon, South Korea',
+    size: CitySize.MEDIUM,
   },
   34: {
     cityId: 34,
@@ -134,6 +171,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.4563, lng: 126.7052 },
     zoom: 12,
     searchKeyword: 'Incheon, South Korea',
+    size: CitySize.MEDIUM,
   },
   35: {
     cityId: 35,
@@ -142,6 +180,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.8813, lng: 127.7298 },
     zoom: 13,
     searchKeyword: 'Chuncheon, South Korea',
+    size: CitySize.SMALL,
   },
   40: {
     cityId: 40,
@@ -150,6 +189,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 35.9676, lng: 126.7372 },
     zoom: 13,
     searchKeyword: 'Gunsan, South Korea',
+    size: CitySize.MEDIUM,
   },
   42: {
     cityId: 42,
@@ -158,6 +198,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 34.8118, lng: 126.3922 },
     zoom: 13,
     searchKeyword: 'Mokpo, South Korea',
+    size: CitySize.MEDIUM,
   },
   49: {
     cityId: 49,
@@ -166,6 +207,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 36.5684, lng: 128.7294 },
     zoom: 13,
     searchKeyword: 'Andong, South Korea',
+    size: CitySize.SMALL,
   },
   52: {
     cityId: 52,
@@ -174,6 +216,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.4844, lng: 130.9057 },
     zoom: 12,
     searchKeyword: 'Ulleungdo, South Korea',
+    size: CitySize.SMALL,
   },
   56: {
     cityId: 56,
@@ -182,6 +225,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.8316, lng: 127.5109 },
     zoom: 13,
     searchKeyword: 'Gapyeong, South Korea',
+    size: CitySize.SMALL,
   },
   59: {
     cityId: 59,
@@ -190,6 +234,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.1326, lng: 128.1911 },
     zoom: 13,
     searchKeyword: 'Jecheon, South Korea',
+    size: CitySize.SMALL,
   },
   60: {
     cityId: 60,
@@ -198,6 +243,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.2636, lng: 127.0286 },
     zoom: 13,
     searchKeyword: 'Suwon, South Korea',
+    size: CitySize.MEDIUM,
   },
   78: {
     cityId: 78,
@@ -206,6 +252,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.1836, lng: 128.4617 },
     zoom: 13,
     searchKeyword: 'Yeongwol, South Korea',
+    size: CitySize.SMALL,
   },
 
   // 유럽
@@ -216,6 +263,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 48.8566, lng: 2.3522 },
     zoom: 12,
     searchKeyword: 'Paris, France',
+    size: CitySize.MEDIUM,
   },
   9: {
     cityId: 9,
@@ -224,6 +272,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 51.5074, lng: -0.1278 },
     zoom: 12,
     searchKeyword: 'London, United Kingdom',
+    size: CitySize.EXTRA_LARGE,
   },
   17: {
     cityId: 17,
@@ -232,6 +281,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 41.3851, lng: 2.1734 },
     zoom: 12,
     searchKeyword: 'Barcelona, Spain',
+    size: CitySize.MEDIUM,
   },
   19: {
     cityId: 19,
@@ -240,6 +290,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 41.9028, lng: 12.4964 },
     zoom: 12,
     searchKeyword: 'Rome, Italy',
+    size: CitySize.MEDIUM,
   },
   28: {
     cityId: 28,
@@ -248,6 +299,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 50.0755, lng: 14.4378 },
     zoom: 12,
     searchKeyword: 'Prague, Czech Republic',
+    size: CitySize.MEDIUM,
   },
   31: {
     cityId: 31,
@@ -256,6 +308,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 40.4168, lng: -3.7038 },
     zoom: 12,
     searchKeyword: 'Madrid, Spain',
+    size: CitySize.MEDIUM,
   },
   32: {
     cityId: 32,
@@ -264,6 +317,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 48.2082, lng: 16.3738 },
     zoom: 12,
     searchKeyword: 'Vienna, Austria',
+    size: CitySize.MEDIUM,
   },
   33: {
     cityId: 33,
@@ -272,6 +326,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 43.7696, lng: 11.2558 },
     zoom: 13,
     searchKeyword: 'Florence, Italy',
+    size: CitySize.MEDIUM,
   },
   39: {
     cityId: 39,
@@ -280,6 +335,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 46.6863, lng: 7.8632 },
     zoom: 13,
     searchKeyword: 'Interlaken, Switzerland',
+    size: CitySize.MEDIUM,
   },
   41: {
     cityId: 41,
@@ -288,6 +344,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 47.4979, lng: 19.0402 },
     zoom: 12,
     searchKeyword: 'Budapest, Hungary',
+    size: CitySize.MEDIUM,
   },
   44: {
     cityId: 44,
@@ -296,6 +353,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 45.4408, lng: 12.3155 },
     zoom: 13,
     searchKeyword: 'Venice, Italy',
+    size: CitySize.MEDIUM,
   },
   45: {
     cityId: 45,
@@ -304,6 +362,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 45.4642, lng: 9.19 },
     zoom: 12,
     searchKeyword: 'Milan, Italy',
+    size: CitySize.MEDIUM,
   },
   47: {
     cityId: 47,
@@ -312,6 +371,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 52.52, lng: 13.405 },
     zoom: 12,
     searchKeyword: 'Berlin, Germany',
+    size: CitySize.MEDIUM,
   },
   51: {
     cityId: 51,
@@ -320,6 +380,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 50.1109, lng: 8.6821 },
     zoom: 12,
     searchKeyword: 'Frankfurt, Germany',
+    size: CitySize.MEDIUM,
   },
   53: {
     cityId: 53,
@@ -328,6 +389,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 48.1351, lng: 11.582 },
     zoom: 12,
     searchKeyword: 'Munich, Germany',
+    size: CitySize.MEDIUM,
   },
   54: {
     cityId: 54,
@@ -336,6 +398,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 52.3676, lng: 4.9041 },
     zoom: 12,
     searchKeyword: 'Amsterdam, Netherlands',
+    size: CitySize.MEDIUM,
   },
   55: {
     cityId: 55,
@@ -344,6 +407,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 41.0082, lng: 28.9784 },
     zoom: 11,
     searchKeyword: 'Istanbul, Turkey',
+    size: CitySize.MEDIUM,
   },
   58: {
     cityId: 58,
@@ -352,6 +416,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 47.8095, lng: 13.055 },
     zoom: 13,
     searchKeyword: 'Salzburg, Austria',
+    size: CitySize.MEDIUM,
   },
   63: {
     cityId: 63,
@@ -360,6 +425,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 38.7223, lng: -9.1393 },
     zoom: 12,
     searchKeyword: 'Lisbon, Portugal',
+    size: CitySize.MEDIUM,
   },
   64: {
     cityId: 64,
@@ -368,6 +434,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 47.3769, lng: 8.5417 },
     zoom: 12,
     searchKeyword: 'Zurich, Switzerland',
+    size: CitySize.MEDIUM,
   },
   66: {
     cityId: 66,
@@ -376,6 +443,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 50.8503, lng: 4.3517 },
     zoom: 12,
     searchKeyword: 'Brussels, Belgium',
+    size: CitySize.MEDIUM,
   },
   70: {
     cityId: 70,
@@ -384,6 +452,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 43.7102, lng: 7.262 },
     zoom: 12,
     searchKeyword: 'Nice, France',
+    size: CitySize.MEDIUM,
   },
   71: {
     cityId: 71,
@@ -392,6 +461,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 55.6761, lng: 12.5683 },
     zoom: 12,
     searchKeyword: 'Copenhagen, Denmark',
+    size: CitySize.MEDIUM,
   },
   73: {
     cityId: 73,
@@ -400,6 +470,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 46.948, lng: 7.4474 },
     zoom: 13,
     searchKeyword: 'Bern, Switzerland',
+    size: CitySize.MEDIUM,
   },
   74: {
     cityId: 74,
@@ -408,6 +479,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 40.8518, lng: 14.2681 },
     zoom: 12,
     searchKeyword: 'Naples, Italy',
+    size: CitySize.MEDIUM,
   },
   75: {
     cityId: 75,
@@ -416,6 +488,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.9838, lng: 23.7275 },
     zoom: 12,
     searchKeyword: 'Athens, Greece',
+    size: CitySize.MEDIUM,
   },
   77: {
     cityId: 77,
@@ -424,6 +497,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 55.7558, lng: 37.6173 },
     zoom: 11,
     searchKeyword: 'Moscow, Russia',
+    size: CitySize.MEDIUM,
   },
   81: {
     cityId: 81,
@@ -432,6 +506,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 50.9375, lng: 6.9603 },
     zoom: 12,
     searchKeyword: 'Cologne, Germany',
+    size: CitySize.MEDIUM,
   },
   82: {
     cityId: 82,
@@ -440,6 +515,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 46.2044, lng: 6.1432 },
     zoom: 12,
     searchKeyword: 'Geneva, Switzerland',
+    size: CitySize.MEDIUM,
   },
   83: {
     cityId: 83,
@@ -448,6 +524,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 59.9139, lng: 10.7522 },
     zoom: 12,
     searchKeyword: 'Oslo, Norway',
+    size: CitySize.MEDIUM,
   },
   84: {
     cityId: 84,
@@ -456,6 +533,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 60.1699, lng: 24.9384 },
     zoom: 12,
     searchKeyword: 'Helsinki, Finland',
+    size: CitySize.MEDIUM,
   },
   85: {
     cityId: 85,
@@ -464,6 +542,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 53.5511, lng: 9.9937 },
     zoom: 12,
     searchKeyword: 'Hamburg, Germany',
+    size: CitySize.MEDIUM,
   },
   86: {
     cityId: 86,
@@ -472,6 +551,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 59.9311, lng: 30.3609 },
     zoom: 11,
     searchKeyword: 'Saint Petersburg, Russia',
+    size: CitySize.MEDIUM,
   },
   88: {
     cityId: 88,
@@ -480,6 +560,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 45.815, lng: 15.9819 },
     zoom: 12,
     searchKeyword: 'Zagreb, Croatia',
+    size: CitySize.MEDIUM,
   },
   90: {
     cityId: 90,
@@ -488,6 +569,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 47.5596, lng: 7.5886 },
     zoom: 13,
     searchKeyword: 'Basel, Switzerland',
+    size: CitySize.MEDIUM,
   },
   94: {
     cityId: 94,
@@ -496,6 +578,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 51.2194, lng: 4.4025 },
     zoom: 12,
     searchKeyword: 'Antwerp, Belgium',
+    size: CitySize.MEDIUM,
   },
 
   // 동남아시아
@@ -506,6 +589,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 13.7563, lng: 100.5018 },
     zoom: 12,
     searchKeyword: 'Bangkok, Thailand',
+    size: CitySize.MEDIUM,
   },
   14: {
     cityId: 14,
@@ -514,6 +598,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 25.033, lng: 121.5654 },
     zoom: 12,
     searchKeyword: 'Taipei, Taiwan',
+    size: CitySize.MEDIUM,
   },
   15: {
     cityId: 15,
@@ -522,6 +607,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 1.3521, lng: 103.8198 },
     zoom: 12,
     searchKeyword: 'Singapore',
+    size: CitySize.MEDIUM,
   },
   16: {
     cityId: 16,
@@ -530,6 +616,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 16.0544, lng: 108.2022 },
     zoom: 12,
     searchKeyword: 'Da Nang, Vietnam',
+    size: CitySize.MEDIUM,
   },
   21: {
     cityId: 21,
@@ -538,6 +625,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 22.3193, lng: 114.1694 },
     zoom: 11,
     searchKeyword: 'Hong Kong',
+    size: CitySize.MEDIUM,
   },
   26: {
     cityId: 26,
@@ -546,6 +634,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 12.2388, lng: 109.1967 },
     zoom: 12,
     searchKeyword: 'Nha Trang, Vietnam',
+    size: CitySize.MEDIUM,
   },
   37: {
     cityId: 37,
@@ -554,6 +643,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 31.2304, lng: 121.4737 },
     zoom: 11,
     searchKeyword: 'Shanghai, China',
+    size: CitySize.MEDIUM,
   },
   38: {
     cityId: 38,
@@ -562,6 +652,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: -8.4095, lng: 115.1889 },
     zoom: 11,
     searchKeyword: 'Bali, Indonesia',
+    size: CitySize.MEDIUM,
   },
   43: {
     cityId: 43,
@@ -570,6 +661,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 10.8231, lng: 106.6297 },
     zoom: 12,
     searchKeyword: 'Ho Chi Minh City, Vietnam',
+    size: CitySize.MEDIUM,
   },
   46: {
     cityId: 46,
@@ -578,6 +670,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 21.0285, lng: 105.8542 },
     zoom: 12,
     searchKeyword: 'Hanoi, Vietnam',
+    size: CitySize.MEDIUM,
   },
   62: {
     cityId: 62,
@@ -586,6 +679,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 18.7883, lng: 98.9853 },
     zoom: 12,
     searchKeyword: 'Chiang Mai, Thailand',
+    size: CitySize.MEDIUM,
   },
   65: {
     cityId: 65,
@@ -594,6 +688,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 39.9042, lng: 116.4074 },
     zoom: 11,
     searchKeyword: 'Beijing, China',
+    size: CitySize.MEDIUM,
   },
   68: {
     cityId: 68,
@@ -602,6 +697,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 22.6273, lng: 120.3014 },
     zoom: 12,
     searchKeyword: 'Kaohsiung, Taiwan',
+    size: CitySize.MEDIUM,
   },
   69: {
     cityId: 69,
@@ -610,6 +706,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 3.139, lng: 101.6869 },
     zoom: 12,
     searchKeyword: 'Kuala Lumpur, Malaysia',
+    size: CitySize.MEDIUM,
   },
   72: {
     cityId: 72,
@@ -618,6 +715,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 14.5995, lng: 120.9842 },
     zoom: 12,
     searchKeyword: 'Manila, Philippines',
+    size: CitySize.MEDIUM,
   },
   79: {
     cityId: 79,
@@ -626,6 +724,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 24.1477, lng: 120.6736 },
     zoom: 12,
     searchKeyword: 'Taichung, Taiwan',
+    size: CitySize.MEDIUM,
   },
   80: {
     cityId: 80,
@@ -634,6 +733,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 43.1056, lng: 131.8735 },
     zoom: 12,
     searchKeyword: 'Vladivostok, Russia',
+    size: CitySize.MEDIUM,
   },
   87: {
     cityId: 87,
@@ -642,6 +742,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 9.538, lng: 100.014 },
     zoom: 12,
     searchKeyword: 'Koh Samui, Thailand',
+    size: CitySize.MEDIUM,
   },
   89: {
     cityId: 89,
@@ -650,6 +751,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 22.9999, lng: 120.2269 },
     zoom: 12,
     searchKeyword: 'Tainan, Taiwan',
+    size: CitySize.MEDIUM,
   },
   91: {
     cityId: 91,
@@ -658,6 +760,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 11.5564, lng: 104.9282 },
     zoom: 12,
     searchKeyword: 'Phnom Penh, Cambodia',
+    size: CitySize.MEDIUM,
   },
   92: {
     cityId: 92,
@@ -666,6 +769,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 41.2995, lng: 69.2401 },
     zoom: 12,
     searchKeyword: 'Tashkent, Uzbekistan',
+    size: CitySize.MEDIUM,
   },
   93: {
     cityId: 93,
@@ -674,6 +778,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 17.9757, lng: 102.6331 },
     zoom: 12,
     searchKeyword: 'Vientiane, Laos',
+    size: CitySize.MEDIUM,
   },
   95: {
     cityId: 95,
@@ -682,6 +787,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 32.0853, lng: 34.7818 },
     zoom: 12,
     searchKeyword: 'Tel Aviv, Israel',
+    size: CitySize.MEDIUM,
   },
   96: {
     cityId: 96,
@@ -690,6 +796,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 21.9588, lng: 96.0891 },
     zoom: 12,
     searchKeyword: 'Mandalay, Myanmar',
+    size: CitySize.MEDIUM,
   },
 
   // 북미/오세아니아
@@ -700,6 +807,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 40.7128, lng: -74.006 },
     zoom: 12,
     searchKeyword: 'New York City, USA',
+    size: CitySize.EXTRA_LARGE,
   },
   20: {
     cityId: 20,
@@ -708,6 +816,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 21.3099, lng: -157.8581 },
     zoom: 11,
     searchKeyword: 'Honolulu, Hawaii, USA',
+    size: CitySize.EXTRA_LARGE,
   },
   22: {
     cityId: 22,
@@ -716,6 +825,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: -33.8688, lng: 151.2093 },
     zoom: 12,
     searchKeyword: 'Sydney, Australia',
+    size: CitySize.MEDIUM,
   },
   25: {
     cityId: 25,
@@ -724,6 +834,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 13.4443, lng: 144.7937 },
     zoom: 11,
     searchKeyword: 'Guam',
+    size: CitySize.MEDIUM,
   },
   27: {
     cityId: 27,
@@ -732,6 +843,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 34.0522, lng: -118.2437 },
     zoom: 11,
     searchKeyword: 'Los Angeles, USA',
+    size: CitySize.EXTRA_LARGE,
   },
   36: {
     cityId: 36,
@@ -740,6 +852,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 37.7749, lng: -122.4194 },
     zoom: 12,
     searchKeyword: 'San Francisco, USA',
+    size: CitySize.MEDIUM,
   },
   48: {
     cityId: 48,
@@ -748,6 +861,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 49.2827, lng: -123.1207 },
     zoom: 12,
     searchKeyword: 'Vancouver, Canada',
+    size: CitySize.MEDIUM,
   },
   50: {
     cityId: 50,
@@ -756,6 +870,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: -37.8136, lng: 144.9631 },
     zoom: 12,
     searchKeyword: 'Melbourne, Australia',
+    size: CitySize.MEDIUM,
   },
   57: {
     cityId: 57,
@@ -764,6 +879,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 43.6532, lng: -79.3832 },
     zoom: 12,
     searchKeyword: 'Toronto, Canada',
+    size: CitySize.MEDIUM,
   },
   61: {
     cityId: 61,
@@ -772,6 +888,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 15.2, lng: 145.75 },
     zoom: 12,
     searchKeyword: 'Saipan, Northern Mariana Islands',
+    size: CitySize.MEDIUM,
   },
   67: {
     cityId: 67,
@@ -780,6 +897,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: -27.4698, lng: 153.0251 },
     zoom: 12,
     searchKeyword: 'Brisbane, Australia',
+    size: CitySize.MEDIUM,
   },
   76: {
     cityId: 76,
@@ -788,6 +906,7 @@ export const cityMapConfigs: Record<number, CityMapConfig> = {
     center: { lat: 45.5017, lng: -73.5673 },
     zoom: 12,
     searchKeyword: 'Montreal, Canada',
+    size: CitySize.MEDIUM,
   },
 };
 
@@ -804,6 +923,7 @@ export const defaultMapConfig: CityMapConfig = {
   center: { lat: 37.5665, lng: 126.978 },
   zoom: 12,
   searchKeyword: 'Seoul, South Korea',
+  size: CitySize.LARGE,
 };
 
 // 도시 이름으로 설정 찾기 (백업용)
