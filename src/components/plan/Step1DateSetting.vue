@@ -295,14 +295,6 @@ const confirmDateSelection = () => {
       start: planStore.tempDateRange.start,
       end: planStore.tempDateRange.end,
     });
-    // 백엔드에 전송할 수 있는 형태로 변환
-    const startDate = planStore.selectedDateRange.start?.toISOString();
-    const endDate = planStore.selectedDateRange.end?.toISOString();
-
-    console.log('선택된 여행 기간:', {
-      startDate,
-      endDate,
-    });
 
     // 단계 이동을 먼저 하고 모달을 닫음
     planStore.nextStep();
