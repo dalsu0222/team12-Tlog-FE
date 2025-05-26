@@ -35,7 +35,7 @@
       class="mb-4 bg-black p-6 text-white hover:bg-black/80"
       @click="handleStepAction"
     >
-      {{ planStore.isSubmitting ? '처리중...' : planStore.currentStep === 4 ? '완료' : '다음' }}
+      {{ planStore.isSubmitting ? '⏳' : planStore.currentStep === 4 ? '완료' : '다음' }}
     </Button>
   </div>
 </template>
