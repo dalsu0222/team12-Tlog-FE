@@ -10,6 +10,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import { Calendar, Users } from 'lucide-vue-next';
 
 // 여행 후기 타입 정의
 interface TripStory {
@@ -103,7 +104,7 @@ const getCompletionStatus = (story: TripStory, buttonConfig: ButtonConfig) => {
 
                   <!-- 여행 기간 표시 - 고정 높이 -->
                   <p class="mb-4 flex h-6 items-center text-gray-600">
-                    <span class="mr-2 flex-shrink-0">🗓️</span>
+                    <Calendar class="mr-4 h-4 w-4 flex-shrink-0 text-gray-400" />
                     <span class="truncate">{{ story.content }}</span>
                   </p>
 
@@ -111,42 +112,45 @@ const getCompletionStatus = (story: TripStory, buttonConfig: ButtonConfig) => {
                   <div class="mb-2 h-14">
                     <!-- 함께하는 친구들이 있는 경우 -->
                     <div v-if="story.participants && story.participants.length > 0">
-                      <p class="mb-1 text-sm text-gray-700">함께하는 친구들:</p>
-                      <div class="flex flex-wrap gap-1">
-                        <span
-                          v-for="participant in story.participants.slice(0, 5)"
-                          :key="participant"
-                          class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
-                        >
-                          {{ participant }}
+                      <p class="mb-1 flex items-center text-sm text-gray-700">
+                        <Users class="mr-4 h-4 w-4 text-gray-400" />
+                        <span class="flex flex-wrap gap-1">
+                          <span
+                            v-for="participant in story.participants.slice(0, 5)"
+                            :key="participant"
+                            class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
+                          >
+                            {{ participant }}
+                          </span>
+                          <!-- 많은 경우 축약 -->
+                          <span
+                            v-if="story.participants.length > 5"
+                            class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
+                          >
+                            외 {{ story.participants.length - 5 }}명
+                          </span>
                         </span>
-                        <!-- 많은 경우 축약 -->
-                        <span
-                          v-if="story.participants.length > 5"
-                          class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
-                        >
-                          외 {{ story.participants.length - 5 }}명
-                        </span>
-                      </div>
+                      </p>
                     </div>
 
                     <!-- 혼자 여행하는 경우 -->
                     <div v-else>
-                      <p class="mb-1 text-sm text-gray-700">여행 스타일:</p>
-                      <div class="flex flex-wrap gap-1">
+                      <p class="mb-1 flex items-center text-sm text-gray-700">
+                        <Users class="mr-4 h-4 w-4 text-gray-400" />
                         <span
                           class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800"
                         >
-                          나혼자 여행하기
+                          혼자 여행
                         </span>
-                      </div>
+                      </p>
                     </div>
                   </div>
 
                   <!-- 스페이서로 버튼을 아래로 밀기 -->
                   <div class="flex-grow"></div>
 
-                  <div class="mt-auto flex items-center justify-between">
+                  <div class="mt-auto space-y-3">
+                    <!-- 상태 표시 -->
                     <div class="flex space-x-2">
                       <span
                         :class="[
@@ -171,19 +175,13 @@ const getCompletionStatus = (story: TripStory, buttonConfig: ButtonConfig) => {
                     </div>
 
                     <Button
-                      size="sm"
+                      class="bg-primary hover:bg-secondary w-full border border-gray-200 text-gray-700 transition-colors"
+                      variant="outline"
                       @click="
                         handleNavigate(
                           story.tripId || story.id,
                           getCompletionStatus(story, buttonConfig)
                         )
-                      "
-                      :variant="
-                        buttonConfig.sameButton
-                          ? 'default'
-                          : getCompletionStatus(story, buttonConfig)
-                            ? 'outline'
-                            : 'default'
                       "
                     >
                       {{
