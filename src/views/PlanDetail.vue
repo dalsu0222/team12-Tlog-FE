@@ -198,6 +198,9 @@ const initializeMapForCity = async () => {
 
     // 2. 미리 설정된 좌표가 없으면 지오코딩으로 검색
     await geocodeAndMoveToCity(map);
+
+    // 지도 초기화가 완료된 후 마커 추가
+    await addMarkersToMap();
   } catch (error) {
     console.error('지도 초기화 오류:', error);
   }
@@ -346,11 +349,6 @@ watch(tripDetail, async newDetail => {
   if (newDetail) {
     // 도시별 지도 초기화
     await initializeMapForCity();
-
-    // 마커 추가
-    setTimeout(() => {
-      addMarkersToMap();
-    }, 500); // 지도 초기화 후 약간의 딜레이
   }
 });
 </script>
