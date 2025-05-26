@@ -23,6 +23,10 @@ import {
   Save,
   X,
   ArrowRight,
+  Copy,
+  Eye,
+  Code,
+  SplitSquareHorizontal,
 } from 'lucide-vue-next';
 import api from '@/services/api/api';
 import { toast } from 'vue-sonner';
@@ -44,6 +48,8 @@ const isEditing = ref(false);
 const errorMessage = ref<string | null>(null); // 지속적인 에러만 표시 (예: 타임아웃)
 const isDeleteDialogOpen = ref(false);
 const isRegenerateDialogOpen = ref(false);
+const showPreview = ref(false); // 읽기 모드에서 마크다운 프리뷰 토글
+const editViewMode = ref<'split' | 'edit' | 'preview'>('split'); // 편집 모드에서 뷰 모드
 
 // 편집용 텍스트
 const editableContent = ref('');
@@ -308,6 +314,7 @@ const startEditing = () => {
   isEditing.value = true;
   editableContent.value = props.aiStoryContent || '';
   errorMessage.value = null;
+  editViewMode.value = 'split'; // 이 줄 추가
 };
 
 const cancelEditing = () => {
@@ -320,6 +327,57 @@ const cancelEditing = () => {
 const hasChanges = computed(() => {
   return editableContent.value !== props.aiStoryContent;
 });
+
+// 마크다운을 HTML로 변환하는 함수 추가
+const convertMarkdownToHtml = (markdown: string): string => {
+  if (!markdown) return '';
+
+  return (
+    markdown
+      // 헤더 변환
+      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-gray-800 mt-6 mb-3">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-gray-800 mt-8 mb-4">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-gray-800 mt-8 mb-6">$1</h1>')
+
+      // 볼드/이탤릭
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-gray-700">$1</em>')
+
+      // 리스트
+      .replace(/^\- (.*$)/gim, '<li class="ml-4 text-gray-700">• $1</li>')
+
+      // 줄바꿈
+      .replace(/\n\n/g, '</p><p class="text-gray-700 leading-relaxed mb-4">')
+      .replace(/\n/g, '<br>')
+
+      // 전체를 p 태그로 감싸기
+      .replace(/^(.*)$/, '<p class="text-gray-700 leading-relaxed mb-4">$1</p>')
+  );
+};
+
+// computed 추가
+const previewHtml = computed(() => {
+  const content = isEditing.value ? editableContent.value : props.aiStoryContent || '';
+  return convertMarkdownToHtml(content);
+});
+
+// 복사 함수 추가
+const copyToClipboard = async () => {
+  const textToCopy = isEditing.value ? editableContent.value : props.aiStoryContent || '';
+
+  try {
+    await navigator.clipboard.writeText(textToCopy);
+    toast.success('클립보드에 복사되었습니다! 📋', {
+      description: '다른 곳에 붙여넣기 할 수 있어요',
+      duration: 2000,
+    });
+  } catch (err) {
+    console.error('복사 실패:', err);
+    toast.error('복사에 실패했습니다', {
+      description: '다시 시도해주세요',
+    });
+  }
+};
 </script>
 
 <template>
@@ -451,6 +509,18 @@ const hasChanges = computed(() => {
 
               <!-- 액션 버튼들 -->
               <div class="flex items-center gap-2">
+                <!-- 복사 버튼 (항상 표시) -->
+                <Button
+                  @click="copyToClipboard"
+                  :disabled="isGeneratingStory || isDeletingStory || isSavingStory"
+                  size="sm"
+                  variant="ghost"
+                  class="hover:bg-opacity-20 text-white hover:bg-white"
+                  title="클립보드에 복사"
+                >
+                  <Copy class="h-4 w-4" />
+                </Button>
+
                 <!-- 편집 모드가 아닐 때 -->
                 <template v-if="!isEditing">
                   <Button
@@ -461,6 +531,19 @@ const hasChanges = computed(() => {
                     class="hover:bg-opacity-20 text-white hover:bg-white"
                   >
                     <Edit3 class="h-4 w-4" />
+                  </Button>
+
+                  <!-- 프리뷰/Raw 토글 버튼 -->
+                  <Button
+                    @click="showPreview = !showPreview"
+                    :disabled="isGeneratingStory || isDeletingStory || isSavingStory"
+                    size="sm"
+                    variant="ghost"
+                    class="hover:bg-opacity-20 text-white hover:bg-white"
+                    :title="showPreview ? '마크다운 원본 보기' : '마크다운 프리뷰 보기'"
+                  >
+                    <Eye v-if="!showPreview" class="h-4 w-4" />
+                    <Code v-else class="h-4 w-4" />
                   </Button>
 
                   <Button
@@ -565,6 +648,49 @@ const hasChanges = computed(() => {
 
                 <!-- 편집 모드일 때 -->
                 <template v-else>
+                  <!-- 편집 뷰 모드 토글 버튼들 -->
+                  <div class="flex rounded-md bg-white/20 p-1">
+                    <Button
+                      @click="editViewMode = 'edit'"
+                      :variant="editViewMode === 'edit' ? 'default' : 'ghost'"
+                      size="sm"
+                      class="h-8 px-2 text-xs"
+                      :class="
+                        editViewMode === 'edit'
+                          ? 'bg-white text-purple-600'
+                          : 'text-white hover:bg-white/20'
+                      "
+                    >
+                      <Code class="h-3 w-3" />
+                    </Button>
+                    <Button
+                      @click="editViewMode = 'split'"
+                      :variant="editViewMode === 'split' ? 'default' : 'ghost'"
+                      size="sm"
+                      class="h-8 px-2 text-xs"
+                      :class="
+                        editViewMode === 'split'
+                          ? 'bg-white text-purple-600'
+                          : 'text-white hover:bg-white/20'
+                      "
+                    >
+                      <SplitSquareHorizontal class="h-3 w-3" />
+                    </Button>
+                    <Button
+                      @click="editViewMode = 'preview'"
+                      :variant="editViewMode === 'preview' ? 'default' : 'ghost'"
+                      size="sm"
+                      class="h-8 px-2 text-xs"
+                      :class="
+                        editViewMode === 'preview'
+                          ? 'bg-white text-purple-600'
+                          : 'text-white hover:bg-white/20'
+                      "
+                    >
+                      <Eye class="h-3 w-3" />
+                    </Button>
+                  </div>
+
                   <Button
                     @click="saveStory"
                     :disabled="isSavingStory || !hasChanges"
@@ -599,21 +725,101 @@ const hasChanges = computed(() => {
                 class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
               ></div>
               <span v-if="isSavingStory">저장 중...</span>
-              <span v-else-if="isEditing">편집 모드</span>
+              <span v-else-if="isEditing">
+                편집 모드 -
+                <span v-if="editViewMode === 'edit'">마크다운 편집</span>
+                <span v-else-if="editViewMode === 'split'">분할 뷰</span>
+                <span v-else>프리뷰 모드</span>
+              </span>
             </div>
           </div>
 
-          <!-- 컨텐츠 영역 (흰색 배경) -->
+          <!-- 컨텐츠 영역 -->
           <div class="bg-gradient-to-br from-gray-50 to-purple-50 p-6">
             <!-- 편집 모드 -->
             <div v-if="isEditing">
-              <Textarea
-                v-model="editableContent"
-                :disabled="isSavingStory"
-                class="min-h-96 w-full resize-none border-gray-200 focus:border-purple-500 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="여행 스토리를 입력하세요..."
-              />
+              <!-- Split View -->
+              <div v-if="editViewMode === 'split'" class="grid grid-cols-2 gap-4">
+                <!-- 편집 패널 -->
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Code class="h-4 w-4" />
+                    마크다운 편집
+                  </div>
+                  <Textarea
+                    v-model="editableContent"
+                    :disabled="isSavingStory"
+                    class="min-h-96 w-full resize-none border-gray-200 focus:border-purple-500 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="여행 스토리를 입력하세요..."
+                  />
+                </div>
 
+                <!-- 프리뷰 패널 -->
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Eye class="h-4 w-4" />
+                    실시간 프리뷰
+                  </div>
+                  <div
+                    class="min-h-96 overflow-y-auto rounded-md border border-gray-200 bg-white p-4"
+                  >
+                    <div
+                      v-if="editableContent.trim()"
+                      v-html="previewHtml"
+                      class="prose prose-sm max-w-none"
+                    ></div>
+                    <div v-else class="flex h-full items-center justify-center text-gray-400">
+                      <div class="text-center">
+                        <Eye class="mx-auto mb-2 h-8 w-8 opacity-50" />
+                        <p>마크다운을 입력하면 실시간으로 프리뷰가 표시됩니다</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Edit Only View -->
+              <div v-else-if="editViewMode === 'edit'">
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Code class="h-4 w-4" />
+                    마크다운 편집
+                  </div>
+                  <Textarea
+                    v-model="editableContent"
+                    :disabled="isSavingStory"
+                    class="min-h-96 w-full resize-none border-gray-200 focus:border-purple-500 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="여행 스토리를 입력하세요..."
+                  />
+                </div>
+              </div>
+
+              <!-- Preview Only View -->
+              <div v-else-if="editViewMode === 'preview'">
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Eye class="h-4 w-4" />
+                    프리뷰
+                  </div>
+                  <div
+                    class="min-h-96 overflow-y-auto rounded-md border border-gray-200 bg-white p-6"
+                  >
+                    <div
+                      v-if="editableContent.trim()"
+                      v-html="previewHtml"
+                      class="prose max-w-none"
+                    ></div>
+                    <div v-else class="flex h-full items-center justify-center text-gray-400">
+                      <div class="text-center">
+                        <Eye class="mx-auto mb-2 h-8 w-8 opacity-50" />
+                        <p>입력된 마크다운이 없습니다</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 편집 모드 상태 표시 -->
               <div class="mt-4 flex items-center justify-between text-sm text-gray-500">
                 <div class="flex items-center gap-4">
                   <span>{{ editableContent.length }} 글자</span>
@@ -639,10 +845,26 @@ const hasChanges = computed(() => {
                 </div>
               </div>
             </div>
+
             <!-- 읽기 모드 -->
             <div v-else>
-              <div class="leading-relaxed whitespace-pre-wrap text-gray-700">
+              <!-- Raw/Preview 토글 표시 -->
+              <div class="mb-4 flex items-center gap-2 text-sm font-medium text-gray-700">
+                <component :is="showPreview ? Eye : Code" class="h-4 w-4" />
+                <span>{{ showPreview ? '마크다운 프리뷰' : '마크다운 원본' }}</span>
+              </div>
+
+              <!-- 원본 마크다운 표시 -->
+              <div
+                v-if="!showPreview"
+                class="rounded-md border border-gray-200 bg-white p-4 leading-relaxed whitespace-pre-wrap text-gray-700"
+              >
                 {{ editableContent }}
+              </div>
+
+              <!-- 프리뷰 표시 -->
+              <div v-else class="rounded-md border border-gray-200 bg-white p-6">
+                <div v-html="previewHtml" class="prose max-w-none"></div>
               </div>
             </div>
           </div>
