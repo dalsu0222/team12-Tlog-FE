@@ -21,13 +21,14 @@ interface TripRecordDetail {
   hasStep2: boolean;
   tripPlans: {
     day: number;
-    plans: { memo: string }[];
+    plans: { placeName: string }[];
   }[];
   tripRecords: {
     recordId: number;
     day: number;
     date: string;
     memo: string;
+    placeName: string;
   }[];
   aiStoryContent: string | null;
 }
@@ -137,6 +138,7 @@ const handleSaveMemos = async (memoRecords: MemoRecord[], callbacks?: SaveCallba
             day: newRecord.day,
             date: newRecord.date.toISOString(),
             memo: newRecord.memo,
+            placeName: '장소 정보 없음',
           });
         }
       });
