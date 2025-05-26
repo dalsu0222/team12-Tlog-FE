@@ -11,6 +11,9 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { CalendarDays, MapPin, Users } from 'lucide-vue-next';
 import { dayColors } from '@/composables/plan/usePlanMap';
 
+import { Edit } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
+
 const props = defineProps<{ id: string }>();
 
 interface Participant {
@@ -44,6 +47,15 @@ interface TripDetail {
 const tripDetail = ref<TripDetail | null>(null);
 const loading = ref(false);
 const error = ref<string>('');
+
+const router = useRouter();
+
+// 편집 페이지로 이동하는 함수
+const goToEditPage = () => {
+  if (tripDetail.value) {
+    router.push(`/plan/${tripDetail.value.tripId}/edit`);
+  }
+};
 
 // 지도 관련 - 포커싱 옵션 추가
 const { initMap, addMarkerForDay, moveToLocation } = usePlanMap();
@@ -363,7 +375,20 @@ watch(tripDetail, async newDetail => {
           <!-- 헤더 -->
           <div class="border-b bg-white p-6">
             <div v-if="tripDetail" class="space-y-3">
-              <h1 class="text-2xl font-bold text-gray-900">{{ tripDetail.title }}</h1>
+              <!-- 제목과 편집 버튼을 한 줄에 배치 -->
+              <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-gray-900">{{ tripDetail.title }}</h1>
+
+                <!-- 편집 버튼 -->
+                <Button
+                  @click="goToEditPage"
+                  variant="primary"
+                  class="bg-bold hover:bg-bold-dark focus:ring-bold-dark flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
+                >
+                  <Edit class="h-4 w-4" />
+                  편집
+                </Button>
+              </div>
 
               <!-- 여행 기간 -->
               <div class="flex items-center gap-1 text-sm text-gray-500">

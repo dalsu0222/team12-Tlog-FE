@@ -32,6 +32,10 @@ export const usePlanStore = defineStore('plan', () => {
   // 여행 계획 데이터 - 각 일차별 장소들
   const dayPlans = ref<Record<number, DayPlan>>({});
 
+  // 편집 모드 관련 상태 추가
+  const isEditMode = ref(false);
+  const originalTripId = ref<number | null>(null);
+
   // Step 1: 날짜 설정
   const selectedDateRange = ref<DateRange>({
     start: null,
@@ -279,6 +283,118 @@ export const usePlanStore = defineStore('plan', () => {
     };
   };
 
+  // 편집 모드 설정 함수
+  const setEditMode = (tripId: number) => {
+    isEditMode.value = true;
+    originalTripId.value = tripId;
+  };
+
+  // 편집 모드 해제 함수
+  const clearEditMode = () => {
+    isEditMode.value = false;
+    originalTripId.value = null;
+  };
+
+  // planStore 초기화 함수 (편집 모드에서 나갈 때 사용)
+  const resetStore = () => {
+    // 모든 상태를 초기값으로 리셋
+    currentStep.value = 1;
+    drawerOpen.value = true;
+    showDrawerContent.value = true;
+    dayPlans.value = {};
+    selectedDateRange.value = { start: null, end: null };
+    tempDateRange.value = { start: null, end: null };
+    showDatePicker.value = true;
+    invitedFriends.value = [];
+    inviteNickname.value = '';
+    accommodationSettings.value = {
+      type: '',
+      priceRange: { min: 0, max: 0 },
+      amenities: [],
+    };
+    searchResults.value = [];
+    searchFilters.value = {
+      category: '',
+      distance: 0,
+      rating: 0,
+    };
+    isSubmitting.value = false;
+    clearEditMode();
+  };
+
+  // 편집 모드용 여행 계획 업데이트 함수
+  const updateTripPlan = async (cityId: number, cityName: string) => {
+    if (isSubmitting.value || !originalTripId.value) return;
+
+    try {
+      isSubmitting.value = true;
+
+      // 데이터 변환 (기존 convertToPlanData 함수와 유사하지만 업데이트용)
+      const planData = convertToUpdatePlanData(cityId, cityName);
+
+      // TODO: 실제 업데이트 API 호출
+      // const response = await updateTripPlan(originalTripId.value, planData);
+
+      console.log('여행 계획 업데이트 데이터:', planData);
+
+      // 성공 시 처리
+      return originalTripId.value;
+    } catch (error) {
+      console.error('여행 계획 업데이트 실패:', error);
+      throw error;
+    } finally {
+      isSubmitting.value = false;
+    }
+  };
+
+  // 편집 모드용 데이터 변환 함수
+  const convertToUpdatePlanData = (cityId: number, cityName: string) => {
+    const places: CreateTripPlanRequest['places'] = [];
+    let globalOrder = 1;
+
+    // 기존 convertToPlanData와 동일한 로직
+    for (let day = 1; day <= getTravelDays.value; day++) {
+      const dayPlan = dayPlans.value[day];
+      if (!dayPlan) continue;
+
+      // 숙소 먼저 추가 (있는 경우)
+      if (dayPlan.accommodation) {
+        places.push({
+          placeId: dayPlan.accommodation.placeId,
+          name: dayPlan.accommodation.name,
+          latitude: dayPlan.accommodation.location.lat(),
+          longitude: dayPlan.accommodation.location.lng(),
+          day: day,
+          order: globalOrder++,
+          placeType: 1, // 숙소
+        });
+      }
+
+      // 일반 장소들 추가
+      dayPlan.places.forEach(place => {
+        places.push({
+          placeId: place.placeId,
+          name: place.name,
+          latitude: place.location.lat(),
+          longitude: place.location.lng(),
+          day: day,
+          order: globalOrder++,
+          placeType: 2, // 명소
+        });
+      });
+    }
+
+    return {
+      tripId: originalTripId.value,
+      friendUserIds: [], // TODO: 실제 친구 ID로 변환 필요
+      cityId: cityId,
+      startDate: selectedDateRange.value.start?.toISOString() || '',
+      endDate: selectedDateRange.value.end?.toISOString() || '',
+      title: `${cityName} 여행`,
+      places: places,
+    };
+  };
+
   return {
     // State
     currentStep,
@@ -294,6 +410,10 @@ export const usePlanStore = defineStore('plan', () => {
     accommodationSettings,
     searchResults,
     searchFilters,
+
+    // 편집 모드 관련 상태
+    isEditMode,
+    originalTripId,
 
     // Computed
     isDrawerVisible,
@@ -319,5 +439,11 @@ export const usePlanStore = defineStore('plan', () => {
     formatDate,
     isSubmitting,
     submitTripPlan,
+
+    // 편집 모드 관련 액션
+    setEditMode,
+    clearEditMode,
+    resetStore,
+    updateTripPlan,
   };
 });
