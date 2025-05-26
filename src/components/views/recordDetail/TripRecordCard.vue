@@ -71,7 +71,7 @@ const formatDate = (date: Date): string => {
       </div>
 
       <!-- Plans List -->
-      <div v-if="plan.plans && plan.plans.length > 0" class="space-y-2">
+      <div v-if="plan.plans && plan.plans.length > 0" class="max-h-40 space-y-2 overflow-y-auto">
         <div
           v-for="(item, index) in plan.plans"
           :key="index"
@@ -89,14 +89,14 @@ const formatDate = (date: Date): string => {
       <div v-else class="py-4 text-center text-sm text-gray-500">일정이 없습니다</div>
 
       <!-- Memo Section -->
-      <div class="mt-auto flex flex-1 flex-col space-y-2">
+      <div class="mt-auto flex flex-col space-y-2">
         <label class="block text-center text-sm font-medium text-gray-700">
           Day {{ plan.day }} 여행 기록
         </label>
         <Textarea
           v-model="cardMemo"
-          placeholder="이 날의 여행 경험과 느낌을 자유롭게 기록해보세요...&#10;&#10;예시:&#10;- 오늘 방문한 장소들의 인상&#10;- 맛있었던 음식이나 특별한 경험&#10;- 함께한 사람들과의 추억"
-          class="flex-1 resize-none rounded-lg border-0 bg-gray-50 text-sm leading-relaxed"
+          placeholder="이 날의 여행 경험과 느낌을 기록해보세요...&#10;&#10;예시:&#10;- 오늘 방문한 장소들의 인상&#10;- 맛있었던 음식이나 특별한 경험&#10;- 함께한 사람들과의 추억"
+          class="h-32 resize-none rounded-lg border-0 bg-gray-50 text-sm leading-relaxed"
           @input="handleMemoUpdate"
         />
       </div>

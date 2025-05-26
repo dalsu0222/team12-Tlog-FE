@@ -56,9 +56,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-    class="mx-auto flex h-full max-w-screen-xl items-center justify-center bg-gray-100 px-4 py-4"
-  >
+  <div class="mx-auto flex h-full max-w-screen-xl items-center justify-center bg-gray-50 px-4 py-4">
     <div
       class="shadow-primary mx-auto flex w-full max-w-md items-center justify-center rounded-lg bg-white p-4 shadow-sm"
     >
