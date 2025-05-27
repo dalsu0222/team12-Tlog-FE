@@ -299,22 +299,9 @@ export const usePlanStore = defineStore('plan', () => {
   // 편집 모드 설정 함수
   // 편집 모드 설정 함수 (디버깅 로그 추가)
   const setEditMode = (tripId: number, cityId: number, cityName: string) => {
-    console.log('🔧 setEditMode 호출됨');
-    console.log('🔧 tripId:', tripId);
-    console.log('🔧 cityId:', cityId);
-    console.log('🔧 cityName:', cityName);
-
-    console.log('🔧 설정 전 - isEditMode:', isEditMode.value);
-    console.log('🔧 설정 전 - originalTripId:', originalTripId.value);
-    console.log('🔧 설정 전 - editModeData:', editModeData.value);
-
     isEditMode.value = true;
     originalTripId.value = tripId;
     editModeData.value = { cityId, cityName };
-
-    console.log('🔧 설정 후 - isEditMode:', isEditMode.value);
-    console.log('🔧 설정 후 - originalTripId:', originalTripId.value);
-    console.log('🔧 설정 후 - editModeData:', editModeData.value);
   };
 
   // 편집 모드 해제 함수

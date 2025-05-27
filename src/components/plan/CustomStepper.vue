@@ -55,9 +55,7 @@ const handleStepAction = async () => {
     try {
       let cityId: number;
       let cityName: string;
-      console.log(
-        'isEditMode :' + planStore.isEditMode + ', editModeData : ' + planStore.editModeData
-      );
+
       if (planStore.isEditMode && planStore.editModeData) {
         // 편집 모드: 저장된 데이터에서 가져오기
         cityId = planStore.editModeData.cityId;
