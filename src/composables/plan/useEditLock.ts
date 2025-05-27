@@ -120,13 +120,8 @@ export function useEditLock() {
           if (responseData.data.nextHeartbeat) {
             heartbeatInterval.value = responseData.data.nextHeartbeat * 1000;
           }
-        } else if (responseData.statusCode === 401) {
-          // 편집 권한 상실
-          console.warn('편집 권한을 잃었습니다');
-          await forceEndEdit();
-          alert('편집 권한이 만료되었습니다. 다시 편집을 시작해주세요.');
         }
-      } catch (error: unknown) {
+      } catch (error) {
         console.error('Heartbeat 실패:', error);
 
         // 401 에러 처리
