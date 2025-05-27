@@ -25,8 +25,70 @@
       </div>
     </div>
 
-    <!-- 메인 콘텐츠 -->
-    <div v-else class="flex h-full">
+    <!-- 편집 락 상태 표시 -->
+    <div
+      v-else-if="!canEdit"
+      class="bg-opacity-95 absolute inset-0 z-40 flex items-center justify-center bg-white"
+    >
+      <div class="mx-auto max-w-md p-8 text-center">
+        <div class="mb-4">
+          <div
+            class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-100"
+          >
+            <svg
+              class="h-8 w-8 text-yellow-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 15v2m0 0v2m0-2h2m-2 0H10m8-9a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="mb-2 text-lg font-semibold text-gray-900">다른 사용자가 편집 중입니다</h3>
+          <p class="mb-6 text-gray-600">
+            현재 다른 사용자가 이 여행 계획을 편집하고 있습니다.
+            <br />
+            잠시 후 다시 시도해주세요.
+          </p>
+        </div>
+
+        <div class="space-y-3">
+          <button
+            @click="handleRetryEdit"
+            :disabled="retryLoading"
+            class="w-full rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            <span v-if="retryLoading">확인 중...</span>
+            <span v-else>다시 시도</span>
+          </button>
+
+          <button
+            @click="$router.push(`/plan/${tripId}`)"
+            class="w-full rounded border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+          >
+            보기 모드로 이동
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 편집 중 상태 표시 -->
+    <div v-if="isEditing" class="absolute top-4 left-1/2 z-30 -translate-x-1/2 transform">
+      <div
+        class="flex items-center gap-2 rounded-lg border border-green-300 bg-green-100 px-4 py-2 text-green-800 shadow-md"
+      >
+        <div class="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
+        <span class="text-sm font-medium">편집 모드</span>
+      </div>
+    </div>
+
+    <!-- 메인 콘텐츠 (편집 가능할 때만 표시) -->
+    <div v-if="canEdit" class="flex h-full">
       <!-- Stepper 영역 -->
       <CustomStepper />
 
@@ -131,12 +193,13 @@ import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { usePlanStore } from '@/stores/plan';
 import { useRoute } from 'vue-router';
 import { usePlanMap } from '@/composables/plan';
+import { useEditLock } from '@/composables/plan';
 import { getCityMapConfig, defaultMapConfig } from '@/constants/cityMapConfig';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
 import { api } from '@/services/api';
 import type { ApiResponse } from '@/services/api/types';
 
-// 컴포넌트들 import (PlanView.vue와 동일)
+// 컴포넌트들 import
 import {
   CustomStepper,
   Step1DateSetting,
@@ -155,11 +218,23 @@ import { AxiosError } from 'axios';
 const planStore = usePlanStore();
 const route = useRoute();
 
+// 편집 락 관리
+const {
+  isEditing,
+  currentOwner,
+  startEdit,
+  endEdit,
+  checkEditStatus,
+  startBeforeUnloadListener,
+  stopBeforeUnloadListener,
+} = useEditLock();
+
 // 로딩 및 에러 상태
 const loading = ref(true);
 const error = ref('');
+const retryLoading = ref(false);
 
-// Trip Detail 인터페이스 (PlanDetail.vue와 동일)
+// Trip Detail 인터페이스
 interface Participant {
   userId: number;
   nickname: string;
@@ -191,6 +266,11 @@ interface TripDetail {
 // 라우트 파라미터에서 tripId 가져오기
 const tripId = computed(() => route.params.id as string);
 
+// 편집 가능 여부 계산
+const canEdit = computed(() => {
+  return !loading.value && !error.value && (isEditing.value || currentOwner.value === null);
+});
+
 // 지도 관련
 const {
   initMap,
@@ -211,8 +291,57 @@ const isPlaceModalOpen = ref(false);
 const accommodationDrawerRef = ref<InstanceType<typeof Step3AccommodationDrawer>>();
 const placeDrawerRef = ref<InstanceType<typeof Step4PlaceDrawer>>();
 
-// 현재 도시의 지도 설정 (동적으로 설정됨)
+// 현재 도시의 지도 설정
 const currentCityConfig = ref(defaultMapConfig);
+
+/**
+ * 편집 권한 획득 시도
+ */
+const attemptToStartEdit = async () => {
+  try {
+    const result = await startEdit(Number(tripId.value));
+
+    console.log('편집 권한 획득 결과:', result);
+
+    if (!result.success) {
+      console.warn('편집 권한 획득 실패:', result.message);
+
+      // 편집 상태 다시 확인
+      await checkEditStatus(Number(tripId.value));
+
+      return false;
+    }
+
+    console.log('편집 권한 획득 성공');
+    return true;
+  } catch (error) {
+    console.error('편집 권한 획득 중 오류:', error);
+    return false;
+  }
+};
+
+/**
+ * 편집 재시도 핸들러
+ */
+const handleRetryEdit = async () => {
+  retryLoading.value = true;
+
+  try {
+    // 편집 상태 확인
+    await checkEditStatus(Number(tripId.value));
+
+    // 편집 권한이 없으면 다시 시도
+    if (currentOwner.value === null) {
+      const success = await attemptToStartEdit();
+      if (success) {
+        // 편집 모드 진입 후 지도 초기화
+        await initializeMapForCity();
+      }
+    }
+  } finally {
+    retryLoading.value = false;
+  }
+};
 
 // 여행 계획 데이터 로드
 const loadTripData = async () => {
@@ -250,7 +379,7 @@ const loadTripData = async () => {
           end: new Date(tripDetail.endDate),
         });
 
-        // 🆕 5. 참가자(친구) 정보 설정 - 본인 제외
+        // 5. 참가자(친구) 정보 설정 - 본인 제외
         await loadExistingParticipants(tripDetail.participants);
 
         // 6. dayPlans 초기화
@@ -263,7 +392,6 @@ const loadTripData = async () => {
         planStore.setCurrentStep(4);
 
         console.log('여행 계획 데이터 로드 완료:', tripDetail);
-        console.log('planStore.dayPlans:', planStore.dayPlans);
       }
     } else {
       error.value = response.data.message || '데이터를 불러올 수 없습니다.';
@@ -286,7 +414,6 @@ const loadTripData = async () => {
 
 // 기존 계획을 planStore에 로드하는 함수
 const loadExistingPlans = async (plans: Plan[]) => {
-  // plans를 day별로 그룹핑
   const plansByDay: Record<number, Plan[]> = {};
 
   plans.forEach(plan => {
@@ -296,16 +423,12 @@ const loadExistingPlans = async (plans: Plan[]) => {
     plansByDay[plan.day].push(plan);
   });
 
-  // 각 일차별로 데이터 변환하여 설정
   for (const [day, dayPlans] of Object.entries(plansByDay)) {
     const dayNumber = Number(day);
-
-    // planOrder 순서대로 정렬
     const sortedPlans = dayPlans.sort((a, b) => a.planOrder - b.planOrder);
 
     for (const plan of sortedPlans) {
-      // Google Places API를 통해 상세 정보 가져오기 (옵션)
-      const address = plan.memo || ''; // memo를 임시 주소로 사용하거나
+      const address = plan.memo || '';
 
       const placeResult: PlaceResult = {
         placeId: plan.placeId,
@@ -315,21 +438,17 @@ const loadExistingPlans = async (plans: Plan[]) => {
         types: getPlaceTypesFromId(plan.placeTypeId),
         rating: 0,
         userRatingsTotal: 0,
-        // 편집 모드임을 표시하는 플래그 추가 (옵션)
         isFromExistingPlan: true,
       };
 
-      // 중복 체크 - 이미 같은 placeId가 있는지 확인
       const existingAccommodation = planStore.dayPlans[dayNumber]?.accommodation;
       const existingPlaces = planStore.dayPlans[dayNumber]?.places || [];
 
       if (plan.placeTypeId === 1) {
-        // 숙박시설 - 중복이 아닌 경우만 추가
         if (!existingAccommodation || existingAccommodation.placeId !== plan.placeId) {
           planStore.addAccommodationToDay(dayNumber, placeResult);
         }
       } else {
-        // 일반 장소 - 중복이 아닌 경우만 추가
         const isDuplicate = existingPlaces.some(p => p.placeId === plan.placeId);
         if (!isDuplicate) {
           planStore.addPlaceToDay(dayNumber, placeResult);
@@ -339,16 +458,13 @@ const loadExistingPlans = async (plans: Plan[]) => {
   }
 };
 
-// 🆕 기존 참가자 정보를 planStore에 로드하는 함수 추가
+// 기존 참가자 정보를 planStore에 로드하는 함수
 const loadExistingParticipants = async (participants: Participant[]) => {
-  // 현재 로그인한 사용자 정보 가져오기 (authStore 사용)
   const authStore = useAuthStore();
   const currentUserId = Number(authStore.user?.userId);
 
-  // 본인을 제외한 참가자들만 초대된 친구로 설정
   const invitedFriends = participants.filter(participant => participant.userId !== currentUserId);
 
-  // planStore에 친구 정보 설정
   invitedFriends.forEach(participant => {
     planStore.addFriendWithId({
       userId: participant.userId,
@@ -359,26 +475,25 @@ const loadExistingParticipants = async (participants: Participant[]) => {
   console.log('기존 참가자 로드 완료:', invitedFriends);
 };
 
-// placeTypeId를 Google Maps types 배열로 변환하는 함수 (PlanDetail.vue와 동일)
+// placeTypeId를 Google Maps types 배열로 변환하는 함수
 const getPlaceTypesFromId = (placeTypeId: number): string[] => {
   const typeMap: Record<number, string[]> = {
-    1: ['lodging'], // 숙박시설
-    2: ['tourist_attraction'], // 관광지
-    3: ['restaurant'], // 음식점
-    4: ['cafe'], // 카페
-    5: ['shopping_mall'], // 쇼핑
-    6: ['establishment'], // 기타
+    1: ['lodging'],
+    2: ['tourist_attraction'],
+    3: ['restaurant'],
+    4: ['cafe'],
+    5: ['shopping_mall'],
+    6: ['establishment'],
   };
   return typeMap[placeTypeId] || ['establishment'];
 };
 
-// 지도 초기화 함수 (PlanView.vue와 동일하지만 currentCityConfig 사용)
+// 지도 초기화 함수
 const initializeMapForCity = async () => {
   try {
     const map = await initMap();
     if (!map) return;
 
-    // 1. 미리 설정된 좌표가 있으면 바로 이동
     if (currentCityConfig.value.center) {
       const location = new google.maps.LatLng(
         currentCityConfig.value.center.lat,
@@ -388,12 +503,9 @@ const initializeMapForCity = async () => {
       map.setZoom(currentCityConfig.value.zoom);
     }
 
-    // 2. 미리 설정된 좌표가 없으면 지오코딩으로 검색
     await geocodeAndMoveToCity(map);
 
-    // 3. 잠시 대기 후 기존 계획의 마커들을 지도에 표시
-    // planStore 데이터가 완전히 로드된 후 마커 추가
-    await nextTick(); // Vue의 DOM 업데이트 대기
+    await nextTick();
     if (Object.keys(planStore.dayPlans).length > 0) {
       await addExistingMarkersToMap();
     }
@@ -402,7 +514,7 @@ const initializeMapForCity = async () => {
   }
 };
 
-// 지오코딩 함수 (PlanView.vue와 동일)
+// 지오코딩 함수
 const geocodeAndMoveToCity = async (map: google.maps.Map) => {
   try {
     const { Geocoder } = (await google.maps.importLibrary(
@@ -436,26 +548,22 @@ const geocodeAndMoveToCity = async (map: google.maps.Map) => {
   }
 };
 
-// 기존 계획의 마커들을 지도에 추가하는 함수 (편집 모드용 - 간소화된 infoWindow)
+// 기존 계획의 마커들을 지도에 추가하는 함수
 const addExistingMarkersToMap = async () => {
   console.log('기존 마커 추가 시작, dayPlans:', planStore.dayPlans);
 
-  // 기존 마커들을 모두 제거 (중복 방지)
-  // 이 부분은 usePlanMap에서 clearAllMarkers 함수가 필요할 수 있음
-
-  // planStore의 dayPlans를 순회하며 마커 추가
   for (const [day, dayPlan] of Object.entries(planStore.dayPlans)) {
     const dayNumber = Number(day);
 
     console.log(`Day ${dayNumber} 마커 추가:`, dayPlan);
 
-    // 숙소 마커 추가 (간소화된 infoWindow 사용)
+    // 숙소 마커 추가
     if (dayPlan.accommodation) {
       console.log(`Day ${dayNumber} 숙소 마커 추가:`, dayPlan.accommodation.name);
       await addMarkerForDay(dayNumber, dayPlan.accommodation, 'accommodation', dayPlan, true);
     }
 
-    // 일반 장소 마커들 추가 (간소화된 infoWindow 사용)
+    // 일반 장소 마커들 추가
     for (let i = 0; i < dayPlan.places.length; i++) {
       const place = dayPlan.places[i];
       console.log(`Day ${dayNumber} 장소 ${i + 1} 마커 추가:`, place.name);
@@ -464,22 +572,22 @@ const addExistingMarkersToMap = async () => {
   }
 };
 
-// 이벤트 핸들러들 (편집 모드용 - 간소화된 infoWindow 사용)
+// 이벤트 핸들러들
 function handlePlaceClick(place: PlaceResult) {
   moveToLocation(place.location);
-  showMarkerForSearchClick(place, planStore.dayPlans, true); // useSimpleInfo = true
+  showMarkerForSearchClick(place, planStore.dayPlans, true);
 }
 
 function handleRemovePlace(day: number, placeId: string) {
   planStore.removePlaceFromDay(day, placeId);
-  removeMarkerForDay(day, placeId, planStore.dayPlans[day], true); // useSimpleInfo = true
+  removeMarkerForDay(day, placeId, planStore.dayPlans[day], true);
 }
 
 function handleOrderChanged(day: number) {
   const dayPlan = planStore.dayPlans[day];
   if (dayPlan) {
     nextTick(() => {
-      updateMarkersForDayPlan(day, planStore.dayPlans[day], true); // useSimpleInfo = true
+      updateMarkersForDayPlan(day, planStore.dayPlans[day], true);
     });
   }
 }
@@ -506,11 +614,11 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
   days.forEach(day => {
     const existingAccommodation = planStore.dayPlans[day]?.accommodation;
     if (existingAccommodation) {
-      removeMarkerForDay(day, existingAccommodation.placeId, planStore.dayPlans[day], true); // useSimpleInfo = true
+      removeMarkerForDay(day, existingAccommodation.placeId, planStore.dayPlans[day], true);
     }
 
     planStore.addAccommodationToDay(day, place);
-    addMarkerForDay(day, place, 'accommodation', planStore.dayPlans[day], true); // useSimpleInfo = true
+    addMarkerForDay(day, place, 'accommodation', planStore.dayPlans[day], true);
   });
 
   selectedAccommodationPlace.value = null;
@@ -518,7 +626,7 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
 
 function handlePlaceConfirm(day: number, place: PlaceResult) {
   planStore.addPlaceToDay(day, place);
-  addMarkerForDay(day, place, planStore.dayPlans[day].places.length, planStore.dayPlans[day], true); // useSimpleInfo = true
+  addMarkerForDay(day, place, planStore.dayPlans[day].places.length, planStore.dayPlans[day], true);
   selectedPlace.value = null;
 }
 
@@ -527,9 +635,21 @@ onMounted(async () => {
   // 1. 여행 계획 데이터 로드
   await loadTripData();
 
-  // 2. 로딩이 완료되면 지도 초기화
   if (!error.value) {
-    await initializeMapForCity();
+    // 2. 편집 상태 확인
+    await checkEditStatus(Number(tripId.value));
+
+    // 3. 편집 권한이 없으면 획득 시도
+    if (currentOwner.value === null) {
+      const success = await attemptToStartEdit();
+      if (success) {
+        // 4. 편집 모드 진입 후 지도 초기화
+        await initializeMapForCity();
+
+        // 5. 페이지 이탈 감지 시작
+        startBeforeUnloadListener();
+      }
+    }
   }
 });
 
@@ -572,15 +692,17 @@ watch(
   }
 );
 
-// 컴포넌트 언마운트 시 planStore 초기화
-onUnmounted(() => {
-  // 편집 모드에서 나갈 때 상태 초기화
+// 컴포넌트 언마운트 시 편집 락 해제
+onUnmounted(async () => {
+  // 편집 모드에서 나갈 때 락 해제
+  if (isEditing.value) {
+    await endEdit(Number(tripId.value));
+  }
+
+  // 페이지 이탈 감지 중지
+  stopBeforeUnloadListener();
+
+  // planStore 초기화
   planStore.resetStore();
 });
 </script>
-
-<style scoped>
-.whitespace-pre-line {
-  white-space: pre-line;
-}
-</style>

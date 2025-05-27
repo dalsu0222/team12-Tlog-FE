@@ -53,7 +53,7 @@ export const fetchAllTripRecords = async (): Promise<TripInfoDto[]> => {
 };
 
 // TripInfoDto -> TripStory 변환
-export const convertToTripStory = (tripInfo: TripInfoDto, index: number): TripStory => {
+export const convertToTripStory = (tripInfo: TripInfoDto): TripStory => {
   const startDate = formatDate(tripInfo.trip.startDate);
   const endDate = formatDate(tripInfo.trip.endDate);
   const periodText = `${startDate} ~ ${endDate}`;

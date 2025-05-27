@@ -4,8 +4,10 @@ import { api } from '@/services/api';
 import type { ApiResponse } from '@/services/api/types';
 import { AxiosError } from 'axios';
 import { usePlanMap } from '@/composables/plan';
+import { useEditLock } from '@/composables/plan';
 import { getCityMapConfig, defaultMapConfig, calculateDynamicZoom } from '@/constants';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import type { DayPlan } from '@/stores/plan';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
 
@@ -17,6 +19,9 @@ import { Edit } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 
 const props = defineProps<{ id: string }>();
+
+// 편집 락 관리
+const { checkEditStatus, currentOwner } = useEditLock();
 
 interface Participant {
   userId: number;
@@ -49,15 +54,46 @@ interface TripDetail {
 const tripDetail = ref<TripDetail | null>(null);
 const loading = ref(false);
 const error = ref<string>('');
+const editLoading = ref(false);
 
 const router = useRouter();
 
-// 편집 페이지로 이동하는 함수
-const goToEditPage = () => {
-  if (tripDetail.value) {
+// 편집 페이지로 이동하는 함수 (락 확인 포함)
+const goToEditPage = async () => {
+  if (!tripDetail.value) return;
+
+  editLoading.value = true;
+
+  try {
+    // 편집 상태 확인
+    const editStatus = await checkEditStatus(tripDetail.value.tripId);
+
+    if (editStatus?.locked) {
+      // 다른 사용자가 편집 중인 경우
+      return;
+    }
+    // 편집 가능한 경우 편집 페이지로 이동
     router.push(`/plan/${tripDetail.value.tripId}/edit`);
+  } catch (error) {
+    console.error('편집 상태 확인 실패:', error);
+
+    // 409 에러인 경우 편집 중이므로 페이지 이동하지 않음
+    if (error instanceof AxiosError && error.response?.status === 409) {
+      alert('다른 사용자가 편집 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    // 기타 오류가 발생한 경우에만 편집 페이지로 이동 (편집 페이지에서 다시 확인)
+    router.push(`/plan/${tripDetail.value.tripId}/edit`);
+  } finally {
+    editLoading.value = false;
   }
 };
+
+// 편집 가능 여부
+const canEdit = computed(() => {
+  return currentOwner.value === null;
+});
 
 // 지도 관련 - 포커싱 옵션 추가
 const { initMap, addMarkerForDay, moveToLocation, showMarkerForSearchClick } = usePlanMap();
@@ -336,6 +372,11 @@ const addMarkersToMap = async () => {
 // 컴포넌트 마운트 시 데이터 조회
 onMounted(async () => {
   await fetchTripDetail();
+
+  // 편집 상태 확인
+  if (tripDetail.value) {
+    await checkEditStatus(tripDetail.value.tripId);
+  }
 });
 
 // tripDetail이 업데이트될 때 지도 초기화 및 마커 추가
@@ -364,12 +405,30 @@ watch(tripDetail, async newDetail => {
                 <!-- 편집 버튼 -->
                 <Button
                   @click="goToEditPage"
-                  variant="primary"
-                  class="bg-bold hover:bg-bold-dark focus:ring-bold-dark flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
+                  :disabled="!canEdit || editLoading"
+                  class="bg-bold hover:bg-bold-dark focus:ring-bold-dark flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-300"
                 >
                   <Edit class="h-4 w-4" />
-                  편집
+                  <span v-if="editLoading">확인 중...</span>
+                  <span v-else-if="!canEdit">편집 중</span>
+                  <span v-else>편집</span>
                 </Button>
+              </div>
+
+              <!-- 편집 상태 알림 -->
+              <div
+                v-if="!canEdit"
+                class="flex items-center gap-2 rounded bg-amber-50 px-3 py-2 text-sm text-amber-600"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 19c-.77.833.192 2.5 1.732 2.5z"
+                  ></path>
+                </svg>
+                <span>다른 사용자가 편집 중입니다</span>
               </div>
 
               <!-- 여행 기간 -->
