@@ -712,6 +712,72 @@ export function usePlanMap() {
     polylines.value.clear();
   }
 
+  // 모든 마커 제거 함수 추가
+  function clearAllMarkers() {
+    markers.value.forEach(marker => {
+      marker.map = null;
+    });
+    markers.value = [];
+
+    // 검색 마커도 제거
+    if (searchClickMarker.value) {
+      searchClickMarker.value.map = null;
+      searchClickMarker.value = null;
+    }
+  }
+
+  // 특정 placeId의 마커가 이미 존재하는지 확인
+  function hasMarkerForPlace(placeId: string): boolean {
+    return markers.value.some(marker => marker.placeId === placeId);
+  }
+
+  // 마커 추가 전 중복 체크를 포함한 안전한 마커 추가 함수
+  async function addMarkerSafely(
+    day: number,
+    place: PlaceResult,
+    orderOrType: number | 'accommodation',
+    dayPlan: DayPlan,
+    useSimpleInfo: boolean = false
+  ) {
+    // 이미 해당 장소의 마커가 있는지 확인
+    if (hasMarkerForPlace(place.placeId)) {
+      console.log(`마커가 이미 존재함: ${place.name} (${place.placeId})`);
+      return;
+    }
+
+    // 기존 addMarkerForDay 로직 실행
+    await addMarkerForDay(day, place, orderOrType, dayPlan, useSimpleInfo);
+  }
+
+  // 편집 모드에서 기존 계획 데이터의 마커들을 한 번에 추가하는 함수
+  async function addExistingPlanMarkers(dayPlans: Record<number, DayPlan>) {
+    // 기존 마커들 모두 제거
+    clearAllMarkers();
+    clearAllPolylines();
+
+    console.log('기존 계획 마커 추가 시작:', dayPlans);
+
+    for (const [dayStr, dayPlan] of Object.entries(dayPlans)) {
+      const day = Number(dayStr);
+
+      // 숙소 마커 추가
+      if (dayPlan.accommodation) {
+        console.log(`Day ${day} 숙소 마커 추가:`, dayPlan.accommodation.name);
+        await addSingleMarker(day, dayPlan.accommodation, 'accommodation', undefined, true);
+      }
+
+      // 일반 장소 마커들 추가
+      for (let i = 0; i < dayPlan.places.length; i++) {
+        const place = dayPlan.places[i];
+        console.log(`Day ${day} 장소 ${i + 1} 마커 추가:`, place.name);
+        await addSingleMarker(day, place, 'place', i + 1, true);
+      }
+
+      // 해당 일차의 polyline 업데이트
+      updatePolylineForDay(day, dayPlan);
+    }
+  }
+
   return {
     initMap,
     addMarkerForDay,
@@ -720,5 +786,11 @@ export function usePlanMap() {
     moveToLocation,
     showMarkerForSearchClick,
     clearAllPolylines,
+
+    // 새로 추가된 함수들
+    clearAllMarkers,
+    hasMarkerForPlace,
+    addMarkerSafely,
+    addExistingPlanMarkers,
   };
 }

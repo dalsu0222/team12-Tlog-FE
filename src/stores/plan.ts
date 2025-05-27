@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
-import { createTripPlan, type CreateTripPlanRequest } from '@/services/api';
+import { createTripPlan, updateTripPlan, type CreateTripPlanRequest } from '@/services/api';
 
 interface DateRange {
   start: Date | null;
@@ -35,6 +35,7 @@ export const usePlanStore = defineStore('plan', () => {
   // 편집 모드 관련 상태 추가
   const isEditMode = ref(false);
   const originalTripId = ref<number | null>(null);
+  const editModeData = ref<{ cityId: number; cityName: string } | null>(null);
 
   // Step 1: 날짜 설정
   const selectedDateRange = ref<DateRange>({
@@ -219,18 +220,30 @@ export const usePlanStore = defineStore('plan', () => {
       // 데이터 변환
       const planData = convertToPlanData(cityId, cityName);
 
-      // API 요청
-      const response = await createTripPlan(planData);
+      // 편집 모드인지 확인
+      if (isEditMode.value && originalTripId.value) {
+        // 편집 모드: 업데이트 API 호출
+        const response = await updateTripPlan(originalTripId.value, planData);
 
-      if ('data' in response) {
-        console.log('여행 계획 생성 성공:', response.data.tripId);
-        // 성공 시 처리 (예: 결과 페이지로 이동)
-        return response.data.tripId;
+        if ('data' in response) {
+          console.log('여행 계획 수정 성공:', response.data.tripId);
+          return response.data.tripId;
+        } else {
+          throw new Error(response.message);
+        }
       } else {
-        throw new Error(response.message);
+        // 생성 모드: 기존 생성 API 호출
+        const response = await createTripPlan(planData);
+
+        if ('data' in response) {
+          console.log('여행 계획 생성 성공:', response.data.tripId);
+          return response.data.tripId;
+        } else {
+          throw new Error(response.message);
+        }
       }
     } catch (error) {
-      console.error('여행 계획 생성 실패:', error);
+      console.error('여행 계획 처리 실패:', error);
       throw error;
     } finally {
       isSubmitting.value = false;
@@ -284,15 +297,31 @@ export const usePlanStore = defineStore('plan', () => {
   };
 
   // 편집 모드 설정 함수
-  const setEditMode = (tripId: number) => {
+  // 편집 모드 설정 함수 (디버깅 로그 추가)
+  const setEditMode = (tripId: number, cityId: number, cityName: string) => {
+    console.log('🔧 setEditMode 호출됨');
+    console.log('🔧 tripId:', tripId);
+    console.log('🔧 cityId:', cityId);
+    console.log('🔧 cityName:', cityName);
+
+    console.log('🔧 설정 전 - isEditMode:', isEditMode.value);
+    console.log('🔧 설정 전 - originalTripId:', originalTripId.value);
+    console.log('🔧 설정 전 - editModeData:', editModeData.value);
+
     isEditMode.value = true;
     originalTripId.value = tripId;
+    editModeData.value = { cityId, cityName };
+
+    console.log('🔧 설정 후 - isEditMode:', isEditMode.value);
+    console.log('🔧 설정 후 - originalTripId:', originalTripId.value);
+    console.log('🔧 설정 후 - editModeData:', editModeData.value);
   };
 
   // 편집 모드 해제 함수
   const clearEditMode = () => {
     isEditMode.value = false;
     originalTripId.value = null;
+    editModeData.value = null;
   };
 
   // planStore 초기화 함수 (편집 모드에서 나갈 때 사용)
@@ -322,79 +351,6 @@ export const usePlanStore = defineStore('plan', () => {
     clearEditMode();
   };
 
-  // 편집 모드용 여행 계획 업데이트 함수
-  const updateTripPlan = async (cityId: number, cityName: string) => {
-    if (isSubmitting.value || !originalTripId.value) return;
-
-    try {
-      isSubmitting.value = true;
-
-      // 데이터 변환 (기존 convertToPlanData 함수와 유사하지만 업데이트용)
-      const planData = convertToUpdatePlanData(cityId, cityName);
-
-      // TODO: 실제 업데이트 API 호출
-      // const response = await updateTripPlan(originalTripId.value, planData);
-
-      console.log('여행 계획 업데이트 데이터:', planData);
-
-      // 성공 시 처리
-      return originalTripId.value;
-    } catch (error) {
-      console.error('여행 계획 업데이트 실패:', error);
-      throw error;
-    } finally {
-      isSubmitting.value = false;
-    }
-  };
-
-  // 편집 모드용 데이터 변환 함수
-  const convertToUpdatePlanData = (cityId: number, cityName: string) => {
-    const places: CreateTripPlanRequest['places'] = [];
-    let globalOrder = 1;
-
-    // 기존 convertToPlanData와 동일한 로직
-    for (let day = 1; day <= getTravelDays.value; day++) {
-      const dayPlan = dayPlans.value[day];
-      if (!dayPlan) continue;
-
-      // 숙소 먼저 추가 (있는 경우)
-      if (dayPlan.accommodation) {
-        places.push({
-          placeId: dayPlan.accommodation.placeId,
-          name: dayPlan.accommodation.name,
-          latitude: dayPlan.accommodation.location.lat(),
-          longitude: dayPlan.accommodation.location.lng(),
-          day: day,
-          order: globalOrder++,
-          placeType: 1, // 숙소
-        });
-      }
-
-      // 일반 장소들 추가
-      dayPlan.places.forEach(place => {
-        places.push({
-          placeId: place.placeId,
-          name: place.name,
-          latitude: place.location.lat(),
-          longitude: place.location.lng(),
-          day: day,
-          order: globalOrder++,
-          placeType: 2, // 명소
-        });
-      });
-    }
-
-    return {
-      tripId: originalTripId.value,
-      friendUserIds: [], // TODO: 실제 친구 ID로 변환 필요
-      cityId: cityId,
-      startDate: selectedDateRange.value.start?.toISOString() || '',
-      endDate: selectedDateRange.value.end?.toISOString() || '',
-      title: `${cityName} 여행`,
-      places: places,
-    };
-  };
-
   return {
     // State
     currentStep,
@@ -414,6 +370,7 @@ export const usePlanStore = defineStore('plan', () => {
     // 편집 모드 관련 상태
     isEditMode,
     originalTripId,
+    editModeData,
 
     // Computed
     isDrawerVisible,
@@ -444,6 +401,5 @@ export const usePlanStore = defineStore('plan', () => {
     setEditMode,
     clearEditMode,
     resetStore,
-    updateTripPlan,
   };
 });

@@ -19,6 +19,16 @@ export type PlaceResult = {
     isOpen: boolean;
     periods?: google.maps.places.OpeningHoursPeriod[];
   };
+
+  // 편집 모드에서 기존 계획 데이터인지 구분하기 위한 플래그 (옵션)
+  isFromExistingPlan?: boolean;
+  // 원본 Plan 데이터 참조 (필요한 경우)
+  originalPlanData?: {
+    planId: number;
+    memo: string | null;
+    planOrder: number;
+    placeTypeId: number;
+  };
 };
 
 export function usePlaceSearch() {

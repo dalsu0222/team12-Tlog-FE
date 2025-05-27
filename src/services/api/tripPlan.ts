@@ -28,3 +28,11 @@ export const createTripPlan = async (
   const response = await api.post('/api/trips/plan', data);
   return response.data;
 };
+
+export const updateTripPlan = async (
+  tripId: number,
+  data: CreateTripPlanRequest
+): Promise<ApiResponse<CreateTripPlanResponse>> => {
+  const response = await api.put(`/api/trips/${tripId}/plan`, data);
+  return response.data;
+};
