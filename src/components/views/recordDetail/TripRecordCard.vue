@@ -95,7 +95,7 @@ const formatDate = (date: Date): string => {
         </label>
         <Textarea
           v-model="cardMemo"
-          placeholder="이 날의 여행 경험과 느낌을 기록해보세요...&#10;&#10;예시:&#10;- 오늘 방문한 장소들의 인상&#10;- 맛있었던 음식이나 특별한 경험&#10;- 함께한 사람들과의 추억"
+          placeholder="이 날의 여행 경험과 느낌을 기록해보세요.&#10;&#10;- 오늘 방문한 장소들의 인상&#10;- 맛있었던 음식이나 특별한 경험"
           class="h-32 resize-none rounded-lg border-0 bg-gray-50 text-sm leading-relaxed"
           @input="handleMemoUpdate"
         />
