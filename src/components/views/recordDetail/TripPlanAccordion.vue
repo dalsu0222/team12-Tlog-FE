@@ -26,13 +26,15 @@ interface TripPlan {
 interface TripRecord {
   day: number;
   memo: string;
+  imageUrl?: string; // 이미지 URL 추가
+  originalName?: string; // 원본 파일명 추가
 }
 
 interface Props {
   plans: TripPlan[];
   tripRecords?: TripRecord[];
   tripStartDate: string;
-  isSaving: boolean; // 부모 컴포넌트의 저장 상태
+  isSaving: boolean;
 }
 
 const props = defineProps<Props>();
@@ -41,8 +43,9 @@ const emit = defineEmits(['saveMemos']);
 // 저장 상태 관리
 const saveComplete = ref(false);
 
-// 메모 데이터 관리
+// 메모 및 이미지 데이터 관리
 const memos = ref<{ [day: number]: string }>({});
+const images = ref<{ [day: number]: { url: string | null; originalName: string | null } }>({});
 
 // Carousel API
 const emblaMainApi = ref<CarouselApi>();
@@ -77,28 +80,37 @@ watch(
   { immediate: true }
 );
 
-// 메모 초기화
-const initializeMemos = () => {
-  console.log('메모 초기화 시작', { tripRecords: props.tripRecords, plans: props.plans });
+// 메모 및 이미지 초기화
+const initializeData = () => {
+  console.log('데이터 초기화 시작', { tripRecords: props.tripRecords, plans: props.plans });
 
   const newMemos: { [day: number]: string } = {};
+  const newImages: { [day: number]: { url: string | null; originalName: string | null } } = {};
 
-  // 모든 plan day에 대해 빈 문자열로 초기화
+  // 모든 plan day에 대해 빈 값으로 초기화
   if (props.plans && props.plans.length > 0) {
     props.plans.forEach(plan => {
       newMemos[plan.day] = '';
+      newImages[plan.day] = { url: null, originalName: null };
     });
   }
 
-  // tripRecords가 있으면 해당 메모로 덮어쓰기
+  // tripRecords가 있으면 해당 데이터로 덮어쓰기
   if (props.tripRecords && props.tripRecords.length > 0) {
     props.tripRecords.forEach(record => {
       newMemos[record.day] = record.memo || '';
+      newImages[record.day] = {
+        url: record.imageUrl || null,
+        originalName: record.originalName || null,
+      };
     });
   }
 
   console.log('초기화된 메모:', newMemos);
+  console.log('초기화된 이미지:', newImages);
+
   memos.value = newMemos;
+  images.value = newImages;
 };
 
 // props 변경 감지
@@ -106,7 +118,7 @@ watch(
   [() => props.plans, () => props.tripRecords],
   () => {
     console.log('Props 변경 감지');
-    initializeMemos();
+    initializeData();
   },
   { immediate: true, deep: true }
 );
@@ -117,6 +129,12 @@ const updateMemo = (day: number, value: string) => {
   memos.value[day] = value;
 };
 
+// 이미지 업데이트
+const updateImage = (day: number, imageUrl: string | null, originalName: string | null) => {
+  console.log('이미지 업데이트:', { day, imageUrl, originalName });
+  images.value[day] = { url: imageUrl, originalName };
+};
+
 // 날짜 계산
 const calculateDate = (day: number): Date => {
   const startDate = new Date(props.tripStartDate);
@@ -125,7 +143,7 @@ const calculateDate = (day: number): Date => {
   return targetDate;
 };
 
-// 모든 메모 저장
+// 모든 데이터 저장
 const saveAllMemos = async () => {
   if (!hasUnsavedChanges.value) {
     toast.error('저장할 내용이 없습니다', {
@@ -134,21 +152,38 @@ const saveAllMemos = async () => {
     return;
   }
 
-  const recordsToSave = Object.entries(memos.value).map(([day, memo]) => ({
-    day: parseInt(day),
-    memo: memo,
-    date: calculateDate(parseInt(day)),
-  }));
+  // 메모나 이미지가 있는 day만 포함
+  const recordsToSave = Object.keys(memos.value)
+    .map(dayStr => {
+      const day = parseInt(dayStr);
+      const memo = memos.value[day] || '';
+      const image = images.value[day];
 
-  // 부모 컴포넌트에게 저장 요청이 시작됨을 알림
-  // 부모는 이 시점에서 isSaving을 true로 설정할 것임
+      // 메모나 이미지 중 하나라도 있으면 저장 대상
+      if (memo.trim() || image?.url) {
+        return {
+          day,
+          memo: memo.trim(),
+          date: calculateDate(day),
+          imageUrl: image?.url || undefined,
+          originalName: image?.originalName || undefined,
+        };
+      }
+      return null;
+    })
+    .filter(record => record !== null);
+
+  if (recordsToSave.length === 0) {
+    toast.error('저장할 내용이 없습니다', {
+      description: '메모나 사진을 추가한 후 저장해주세요',
+    });
+    return;
+  }
+
   try {
     console.log('여행 기록 저장 시작:', recordsToSave);
 
-    // emit은 Promise를 반환하지 않기 때문에, 부모 컴포넌트에서 성공/실패 여부를
-    // 다시 알려줄 필요가 있습니다. 부모 컴포넌트에서 결과를 반환할 때까지 기다립니다.
     const result = await new Promise((resolve, reject) => {
-      // saveMemos 이벤트 발생 - 부모 컴포넌트에서 API 호출
       emit('saveMemos', recordsToSave, { onSuccess: resolve, onError: reject });
     });
 
@@ -159,7 +194,7 @@ const saveAllMemos = async () => {
 
     // 성공 토스트 메시지 표시
     toast.success('여행 기록이 저장되었습니다! ✓', {
-      description: '소중한 추억이 안전하게 저장되었어요',
+      description: `${recordsToSave.length}개 일차의 소중한 추억이 안전하게 저장되었어요`,
       duration: 3000,
     });
 
@@ -203,13 +238,29 @@ const saveAllMemos = async () => {
   }
 };
 
-// 저장이 필요한지 확인
+// 저장이 필요한지 확인 (메모와 이미지 모두 고려)
 const hasUnsavedChanges = computed(() => {
   if (!props.tripRecords || props.tripRecords.length === 0) {
-    return Object.values(memos.value).some(memo => memo.trim() !== '');
+    // 기존 기록이 없는 경우: 새로운 메모나 이미지가 있으면 변경사항 있음
+    const hasNewMemo = Object.values(memos.value).some(memo => memo.trim() !== '');
+    const hasNewImage = Object.values(images.value).some(image => image.url !== null);
+    return hasNewMemo || hasNewImage;
   }
 
-  return props.tripRecords.some(record => memos.value[record.day] !== (record.memo || ''));
+  // 기존 기록이 있는 경우: 메모나 이미지 변경사항 확인
+  return props.tripRecords.some(record => {
+    const currentMemo = memos.value[record.day] || '';
+    const currentImage = images.value[record.day];
+    const originalMemo = record.memo || '';
+    const originalImageUrl = record.imageUrl || null;
+    const originalImageName = record.originalName || null;
+
+    return (
+      currentMemo !== originalMemo ||
+      currentImage?.url !== originalImageUrl ||
+      currentImage?.originalName !== originalImageName
+    );
+  });
 });
 
 // Carousel 스크롤 이벤트 처리
@@ -271,19 +322,8 @@ onMounted(() => {
     <AccordionContent class="px-8 pb-6">
       <div class="space-y-4">
         <p class="text-base leading-relaxed text-gray-600">
-          소중한 여행의 순간들을 날짜별로 기록하고 추억을 남겨보세요
+          소중한 여행의 순간들을 날짜별로 기록하고 사진과 함께 추억을 남겨보세요
         </p>
-
-        <!-- <div class="space-y-2">
-          <div class="flex items-center gap-3">
-            <div class="h-2 w-2 rounded-full bg-blue-600"></div>
-            <span class="text-base text-gray-700">일차별 여행 일기 작성</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="h-2 w-2 rounded-full bg-blue-600"></div>
-            <span class="text-base text-gray-700">특별한 순간과 감정 기록</span>
-          </div>
-        </div> -->
       </div>
 
       <div v-if="!plans || plans.length === 0" class="py-8 text-center">
@@ -309,8 +349,11 @@ onMounted(() => {
               <TripRecordCard
                 :plan="plan"
                 :memo="memos[plan.day] || ''"
+                :image-url="images[plan.day]?.url || ''"
+                :original-name="images[plan.day]?.originalName || ''"
                 :date="calculateDate(plan.day)"
                 @update-memo="updateMemo"
+                @update-image="updateImage"
               />
             </CarouselItem>
           </CarouselContent>

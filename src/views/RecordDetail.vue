@@ -21,14 +21,15 @@ interface TripRecordDetail {
   hasStep2: boolean;
   tripPlans: {
     day: number;
-    plans: { placeName: string }[];
+    plans: { memo: string }[];
   }[];
   tripRecords: {
     recordId: number;
     day: number;
     date: string;
     memo: string;
-    placeName: string;
+    imageUrl?: string; // 이미지 URL 추가
+    originalName?: string; // 원본 파일명 추가
   }[];
   aiStoryContent: string | null;
 }
@@ -37,6 +38,8 @@ interface MemoRecord {
   day: number;
   memo: string;
   date: Date;
+  imageUrl?: string; // 이미지 URL 추가
+  originalName?: string; // 원본 파일명 추가
 }
 
 interface SaveCallbacks {
@@ -96,7 +99,6 @@ const handleStoryDeleted = () => {
 const handleStorySaved = (content: string) => {
   if (tripDetail.value) {
     tripDetail.value.aiStoryContent = content;
-    // hasStep2는 이미 true이므로 그대로 유지
   }
   console.log('AI 스토리가 저장되었습니다.');
 };
@@ -107,12 +109,14 @@ const handleSaveMemos = async (memoRecords: MemoRecord[], callbacks?: SaveCallba
   try {
     isSavingMemos.value = true;
 
-    // API 형식에 맞게 데이터 변환
+    // API 형식에 맞게 데이터 변환 (이미지 정보 포함)
     const requestData = {
       records: memoRecords.map(record => ({
         day: record.day,
         date: record.date.toISOString().split('T')[0], // YYYY-MM-DD 형식
         memo: record.memo,
+        imageUrl: record.imageUrl || null, // 이미지 URL 추가
+        originalName: record.originalName || null, // 원본 파일명 추가
       })),
     };
 
@@ -122,23 +126,25 @@ const handleSaveMemos = async (memoRecords: MemoRecord[], callbacks?: SaveCallba
 
     // 성공시 로컬 데이터 업데이트
     if (tripDetail.value) {
-      // 기존 records 업데이트 또는 새로 추가
       memoRecords.forEach(newRecord => {
         const existingRecordIndex = tripDetail.value!.tripRecords.findIndex(
           record => record.day === newRecord.day
         );
 
         if (existingRecordIndex >= 0) {
-          // 기존 기록 업데이트
+          // 기존 기록 업데이트 (이미지 정보 포함)
           tripDetail.value!.tripRecords[existingRecordIndex].memo = newRecord.memo;
+          tripDetail.value!.tripRecords[existingRecordIndex].imageUrl = newRecord.imageUrl;
+          tripDetail.value!.tripRecords[existingRecordIndex].originalName = newRecord.originalName;
         } else {
-          // 새 기록 추가
+          // 새 기록 추가 (이미지 정보 포함)
           tripDetail.value!.tripRecords.push({
             recordId: 0, // 임시 ID
             day: newRecord.day,
             date: newRecord.date.toISOString(),
             memo: newRecord.memo,
-            placeName: '장소 정보 없음',
+            imageUrl: newRecord.imageUrl,
+            originalName: newRecord.originalName,
           });
         }
       });
@@ -160,7 +166,7 @@ const handleSaveMemos = async (memoRecords: MemoRecord[], callbacks?: SaveCallba
     if (callbacks?.onError) {
       callbacks.onError(err);
     } else {
-      throw err; // 콜백이 없으면 예외를 다시 던짐
+      throw err;
     }
   } finally {
     isSavingMemos.value = false;
@@ -199,7 +205,7 @@ onMounted(() => {
         :participants="tripDetail.tripParticipant"
       />
 
-      <!-- Accordion Steps - 각 컴포넌트를 별도 Accordion으로 분리하여 독립적으로 동작 -->
+      <!-- Accordion Steps -->
       <div class="space-y-4">
         <!-- Step 1 Accordion - 항상 열려있음 -->
         <Accordion type="single" collapsible :default-value="initialStep1Value">
@@ -212,7 +218,7 @@ onMounted(() => {
           />
         </Accordion>
 
-        <!-- Step 2 Accordion - hasStep2에 따라 초기 상태 결정 -->
+        <!-- Step 2 Accordion -->
         <Accordion type="single" collapsible :default-value="initialStep2Value">
           <AiStoryAccordion
             :trip-id="tripDetail.trip.tripId"
