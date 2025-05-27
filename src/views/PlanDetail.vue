@@ -329,6 +329,7 @@ const addMarkersToMap = async () => {
     // 일반 장소 마커들을 순서대로 추가
     dayPlan.places.forEach((place, index) => {
       addMarkerForDay(Number(day), place, index + 1, dayPlan, true);
+
     });
   });
 };
