@@ -149,6 +149,7 @@ import Step3AccommodationDrawer from '@/components/plan/Step3AccommodationDrawer
 import Step4PlaceDrawer from '@/components/plan/Step4PlaceDrawer.vue';
 import AccommodationDaySelectModal from '@/components/plan/AccommodationDaySelectModal.vue';
 import PlaceDaySelectModal from '@/components/plan/PlaceDaySelectModal.vue';
+import { useAuthStore } from '@/stores/auth';
 import { AxiosError } from 'axios';
 
 const planStore = usePlanStore();
@@ -249,13 +250,16 @@ const loadTripData = async () => {
           end: new Date(tripDetail.endDate),
         });
 
-        // 5. dayPlans 초기화
+        // 🆕 5. 참가자(친구) 정보 설정 - 본인 제외
+        await loadExistingParticipants(tripDetail.participants);
+
+        // 6. dayPlans 초기화
         planStore.initializeDayPlans();
 
-        // 6. 기존 계획 데이터를 planStore에 설정
+        // 7. 기존 계획 데이터를 planStore에 설정
         await loadExistingPlans(tripDetail.plans);
 
-        // 7. Step 4로 이동 (편집 모드이므로)
+        // 8. Step 4로 이동 (편집 모드이므로)
         planStore.setCurrentStep(4);
 
         console.log('여행 계획 데이터 로드 완료:', tripDetail);
@@ -333,6 +337,26 @@ const loadExistingPlans = async (plans: Plan[]) => {
       }
     }
   }
+};
+
+// 🆕 기존 참가자 정보를 planStore에 로드하는 함수 추가
+const loadExistingParticipants = async (participants: Participant[]) => {
+  // 현재 로그인한 사용자 정보 가져오기 (authStore 사용)
+  const authStore = useAuthStore();
+  const currentUserId = Number(authStore.user?.userId);
+
+  // 본인을 제외한 참가자들만 초대된 친구로 설정
+  const invitedFriends = participants.filter(participant => participant.userId !== currentUserId);
+
+  // planStore에 친구 정보 설정
+  invitedFriends.forEach(participant => {
+    planStore.addFriendWithId({
+      userId: participant.userId,
+      nickname: participant.nickname,
+    });
+  });
+
+  console.log('기존 참가자 로드 완료:', invitedFriends);
 };
 
 // placeTypeId를 Google Maps types 배열로 변환하는 함수 (PlanDetail.vue와 동일)
