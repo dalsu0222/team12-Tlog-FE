@@ -71,6 +71,25 @@ const scrollToIncompleteStories = () => {
   }
 };
 
+// 기존 goToCreateTrip 함수 아래에 추가
+const handleTripDeleted = ({
+  tripId,
+  tripTitle,
+  message,
+}: {
+  tripId: number;
+  tripTitle: string;
+  message: string;
+}) => {
+  // 로컬 데이터에서 삭제된 여행 제거
+  allTripData.value = allTripData.value.filter(trip => trip.trip.tripId !== tripId);
+
+  // 사용자에게 성공 메시지 표시
+  alert(`${message}\n\n'${tripTitle}' 여행이 처리되었습니다.`);
+
+  console.log(`여행 삭제 완료 - ID: ${tripId}, 제목: ${tripTitle}`);
+};
+
 onMounted(() => {
   loadTripData();
 });
@@ -103,6 +122,8 @@ onMounted(() => {
           @navigate="handleNavigate"
           @go-to-create-trip="goToCreateTrip"
           @scroll-to-completed="scrollToCompletedStories"
+          @trip-deleted="handleTripDeleted"
+          @refresh-data="loadTripData"
         />
       </div>
 
@@ -112,6 +133,8 @@ onMounted(() => {
           :stories="completedStories"
           @navigate="handleNavigate"
           @scroll-to-incomplete="scrollToIncompleteStories"
+          @trip-deleted="handleTripDeleted"
+          @refresh-data="loadTripData"
         />
       </div>
     </div>
