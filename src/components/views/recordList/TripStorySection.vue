@@ -3,6 +3,7 @@
 import { ref, type PropType } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'vue-sonner';
 import {
   Carousel,
   CarouselContent,
@@ -107,7 +108,7 @@ const handleDeleteTrip = async (tripId: number, tripTitle: string) => {
       errorMessage = '로그인이 필요합니다.';
     }
 
-    alert(errorMessage);
+    toast.error(errorMessage);
   } finally {
     isDeleting.value = false;
     deletingTripId.value = null;
@@ -119,7 +120,7 @@ const getDeleteWarningMessage = (story: TripStory) => {
   const hasOtherParticipants = story.participants && story.participants.length > 0;
 
   if (hasOtherParticipants) {
-    return `'${story.title}' 여행에서 탈퇴하시겠습니까?\n\n다른 참여자들이 있어 여행은 유지되지만,\n의 여행 기록과 AI 후기는 모두 삭제됩니다.`;
+    return `'${story.title}' 여행에서 탈퇴하시겠습니까?\n\n다른 참여자들이 있어 여행은 유지되지만,\n당신의 여행 기록과 AI 후기는 모두 삭제됩니다.`;
   } else {
     return `'${story.title}' 여행을 완전히 삭제하시겠습니까?\n\n마지막 참여자이므로 여행과 관련된 모든 데이터가 영구적으로 삭제됩니다.`;
   }
