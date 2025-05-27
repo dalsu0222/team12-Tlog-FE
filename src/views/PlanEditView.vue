@@ -149,6 +149,7 @@ import Step3AccommodationDrawer from '@/components/plan/Step3AccommodationDrawer
 import Step4PlaceDrawer from '@/components/plan/Step4PlaceDrawer.vue';
 import AccommodationDaySelectModal from '@/components/plan/AccommodationDaySelectModal.vue';
 import PlaceDaySelectModal from '@/components/plan/PlaceDaySelectModal.vue';
+import { AxiosError } from 'axios';
 
 const planStore = usePlanStore();
 const route = useRoute();
@@ -265,7 +266,15 @@ const loadTripData = async () => {
     }
   } catch (err) {
     console.error('여행 계획 로드 실패:', err);
-    // ... 에러 처리 코드는 기존과 동일
+    if (err instanceof AxiosError && err.response?.data?.message) {
+      error.value = err.response.data.message;
+    } else if (err instanceof AxiosError && err.response?.status === 401) {
+      error.value = '로그인이 필요합니다.';
+    } else if (err instanceof AxiosError && err.response?.status === 404) {
+      error.value = '여행 계획을 찾을 수 없습니다.';
+    } else {
+      error.value = '네트워크 오류가 발생했습니다.';
+    }
   } finally {
     loading.value = false;
   }
@@ -360,9 +369,10 @@ const initializeMapForCity = async () => {
 
     // 3. 잠시 대기 후 기존 계획의 마커들을 지도에 표시
     // planStore 데이터가 완전히 로드된 후 마커 추가
-    setTimeout(async () => {
+    await nextTick(); // Vue의 DOM 업데이트 대기
+    if (Object.keys(planStore.dayPlans).length > 0) {
       await addExistingMarkersToMap();
-    }, 500);
+    }
   } catch (error) {
     console.error('지도 초기화 오류:', error);
   }
