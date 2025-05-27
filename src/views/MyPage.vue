@@ -111,7 +111,7 @@ const loadRecentTrips = async () => {
 // 네비게이션 함수들
 const goToHome = () => router.push('/');
 const goToPlanDetail = (tripId: number) => {
-  router.push(`/plans/${tripId}`);
+  router.push(`/plan/${tripId}`);
 };
 const goToRecordDetail = (tripId: number) => router.push(`/records/${tripId}`);
 
