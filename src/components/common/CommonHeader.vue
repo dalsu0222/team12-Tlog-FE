@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
-import logo from '@/assets/logo.svg';
+import logo from '@/assets/logo_updated.png';
 import myIcon from '@/assets/my.svg';
 import router from '@/router';
 import { useAuthStore } from '@/stores/auth';
@@ -22,7 +22,7 @@ const handleLogout = () => {
     <nav class="relative container mx-auto flex h-full items-center justify-between">
       <div class="flex items-center">
         <router-link to="/">
-          <img :src="logo" alt="logo" class="h-12 w-12" />
+          <img :src="logo" alt="logo" class="h-8 w-16" />
         </router-link>
       </div>
       <ul class="flex min-h-full items-center gap-8 text-sm">

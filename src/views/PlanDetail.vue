@@ -6,10 +6,15 @@ import { AxiosError } from 'axios';
 import { usePlanMap } from '@/composables/plan';
 import { getCityMapConfig, defaultMapConfig, calculateDynamicZoom } from '@/constants';
 import { Badge } from '@/components/ui/badge';
+import type { DayPlan } from '@/stores/plan';
+import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
 
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { CalendarDays, MapPin, Users } from 'lucide-vue-next';
 import { dayColors } from '@/composables/plan/usePlanMap';
+
+import { Edit } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
 
 const props = defineProps<{ id: string }>();
 
@@ -45,8 +50,17 @@ const tripDetail = ref<TripDetail | null>(null);
 const loading = ref(false);
 const error = ref<string>('');
 
+const router = useRouter();
+
+// 편집 페이지로 이동하는 함수
+const goToEditPage = () => {
+  if (tripDetail.value) {
+    router.push(`/plan/${tripDetail.value.tripId}/edit`);
+  }
+};
+
 // 지도 관련 - 포커싱 옵션 추가
-const { initMap, addMarkerForDay, moveToLocation } = usePlanMap();
+const { initMap, addMarkerForDay, moveToLocation, showMarkerForSearchClick } = usePlanMap();
 
 // 현재 도시의 지도 설정 가져오기
 const currentCityConfig = computed(() => {
@@ -89,9 +103,36 @@ const plansByDay = computed(() => {
   return grouped;
 });
 
+// 유틸리티 함수들
+const convertPlanToPlaceResult = (plan: Plan): PlaceResult => ({
+  placeId: plan.placeId,
+  name: plan.placeName,
+  location: new google.maps.LatLng(plan.latitude, plan.longitude),
+  address: '',
+  types: getPlaceTypesFromId(plan.placeTypeId),
+  rating: 0,
+  userRatingsTotal: 0,
+  description: plan.memo || getDefaultDescriptionForType(plan.placeTypeId),
+});
+
+const convertPlansToDayPlan = (plans: Plan[]): DayPlan => {
+  const accommodations = plans.filter(p => p.placeTypeId === 1);
+  const regularPlaces = plans.filter(p => p.placeTypeId !== 1);
+
+  return {
+    accommodation:
+      accommodations.length > 0 ? convertPlanToPlaceResult(accommodations[0]) : undefined,
+    places: regularPlaces.map(convertPlanToPlaceResult),
+  };
+};
+
+const formatDateWithOptions = (date: Date, options: Intl.DateTimeFormatOptions) => {
+  return date.toLocaleDateString('ko-KR', options);
+};
+
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('ko-KR', {
+  return formatDateWithOptions(date, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -106,7 +147,7 @@ const getDateForDay = (day: number) => {
   const targetDate = new Date(startDate);
   targetDate.setDate(startDate.getDate() + day - 1);
 
-  return targetDate.toLocaleDateString('ko-KR', {
+  return formatDateWithOptions(targetDate, {
     month: 'short',
     day: 'numeric',
     weekday: 'short',
@@ -141,10 +182,40 @@ const getDayColor = (day: number) => {
   return dayColors[day - 1] || '#888';
 };
 
-// 장소 클릭 시 지도 중심 이동하는 함수
+const getPlaceTypesFromId = (placeTypeId: number): string[] => {
+  const typeMap: Record<number, string[]> = {
+    1: ['lodging'], // 숙박시설
+    2: ['tourist_attraction'], // 관광지
+    3: ['restaurant'], // 음식점
+    4: ['cafe'], // 카페
+    5: ['shopping_mall'], // 쇼핑
+    6: ['establishment'], // 기타
+  };
+  return typeMap[placeTypeId] || ['establishment'];
+};
+
+const getDefaultDescriptionForType = (placeTypeId: number): string => {
+  const descriptionMap: Record<number, string> = {
+    1: '편안한 숙박을 위한 최적의 장소입니다.',
+    2: '꼭 방문해보시길 추천하는 명소입니다.',
+    3: '맛있는 음식을 즐길 수 있는 곳입니다.',
+    4: '좋은 분위기에서 커피를 즐길 수 있습니다.',
+    5: '다양한 쇼핑을 즐길 수 있는 장소입니다.',
+    6: '방문할 만한 가치가 있는 장소입니다.',
+  };
+  return descriptionMap[placeTypeId] || '방문할 만한 가치가 있는 장소입니다.';
+};
+
 const focusOnPlace = (plan: Plan) => {
-  const location = new google.maps.LatLng(plan.latitude, plan.longitude);
-  moveToLocation(location);
+  const place = convertPlanToPlaceResult(plan);
+
+  // plansByDay를 DayPlan 형식으로 변환
+  const dayPlans: Record<number, DayPlan> = {};
+  Object.entries(plansByDay.value).forEach(([day, plans]) => {
+    dayPlans[Number(day)] = convertPlansToDayPlan(plans);
+  });
+
+  showMarkerForSearchClick(place, dayPlans, true);
 };
 
 // 여행 계획 조회 함수
@@ -243,75 +314,23 @@ const geocodeAndMoveToCity = async (map: google.maps.Map) => {
   }
 };
 
-// 지도에 마커 추가하는 함수 - 수정된 버전
 const addMarkersToMap = async () => {
   if (!tripDetail.value?.plans) return;
 
   // 각 day별로 마커 추가
   Object.entries(plansByDay.value).forEach(([day, plans]) => {
-    // 숙소와 일반 장소 분리
-    const accommodations = plans.filter(plan => plan.placeTypeId === 1); // 숙박시설
-    const regularPlaces = plans.filter(plan => plan.placeTypeId !== 1); // 숙박시설이 아닌 곳들
-
-    const createPlaceFromPlan = (plan: Plan) => ({
-      placeId: plan.placeId,
-      name: plan.placeName,
-      location: new google.maps.LatLng(plan.latitude, plan.longitude),
-      address: '',
-      types: getPlaceTypesFromId(plan.placeTypeId),
-      rating: 0,
-      userRatingsTotal: 0,
-      description: plan.memo || getDefaultDescriptionForType(plan.placeTypeId),
-    });
-
-    const dayPlan = {
-      accommodation: accommodations.length > 0 ? createPlaceFromPlan(accommodations[0]) : undefined,
-      places: regularPlaces.map(createPlaceFromPlan),
-    };
+    const dayPlan = convertPlansToDayPlan(plans);
 
     // 숙소 마커 추가 (있는 경우)
     if (dayPlan.accommodation) {
-      addMarkerForDay(Number(day), dayPlan.accommodation, 'accommodation', dayPlan);
+      addMarkerForDay(Number(day), dayPlan.accommodation, 'accommodation', dayPlan, true);
     }
 
     // 일반 장소 마커들을 순서대로 추가
-    regularPlaces.forEach((plan, index) => {
-      const place = createPlaceFromPlan(plan);
-
-      addMarkerForDay(
-        Number(day),
-        place,
-        index + 1, // 일반 장소들은 1부터 시작하는 순서 번호
-        dayPlan
-      );
+    dayPlan.places.forEach((place, index) => {
+      addMarkerForDay(Number(day), place, index + 1, dayPlan, true);
     });
   });
-};
-
-// placeTypeId를 Google Maps types 배열로 변환하는 함수
-const getPlaceTypesFromId = (placeTypeId: number): string[] => {
-  const typeMap: Record<number, string[]> = {
-    1: ['lodging'], // 숙박시설
-    2: ['tourist_attraction'], // 관광지
-    3: ['restaurant'], // 음식점
-    4: ['cafe'], // 카페
-    5: ['shopping_mall'], // 쇼핑
-    6: ['establishment'], // 기타
-  };
-  return typeMap[placeTypeId] || ['establishment'];
-};
-
-// placeTypeId에 따른 기본 설명 생성 함수
-const getDefaultDescriptionForType = (placeTypeId: number): string => {
-  const descriptionMap: Record<number, string> = {
-    1: '편안한 숙박을 위한 최적의 장소입니다.',
-    2: '꼭 방문해보시길 추천하는 명소입니다.',
-    3: '맛있는 음식을 즐길 수 있는 곳입니다.',
-    4: '좋은 분위기에서 커피를 즐길 수 있습니다.',
-    5: '다양한 쇼핑을 즐길 수 있는 장소입니다.',
-    6: '방문할 만한 가치가 있는 장소입니다.',
-  };
-  return descriptionMap[placeTypeId] || '방문할 만한 가치가 있는 장소입니다.';
 };
 
 // 컴포넌트 마운트 시 데이터 조회
@@ -338,7 +357,20 @@ watch(tripDetail, async newDetail => {
           <!-- 헤더 -->
           <div class="border-b bg-white p-6">
             <div v-if="tripDetail" class="space-y-3">
-              <h1 class="text-2xl font-bold text-gray-900">{{ tripDetail.title }}</h1>
+              <!-- 제목과 편집 버튼을 한 줄에 배치 -->
+              <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-gray-900">{{ tripDetail.title }}</h1>
+
+                <!-- 편집 버튼 -->
+                <Button
+                  @click="goToEditPage"
+                  variant="primary"
+                  class="bg-bold hover:bg-bold-dark focus:ring-bold-dark flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
+                >
+                  <Edit class="h-4 w-4" />
+                  편집
+                </Button>
+              </div>
 
               <!-- 여행 기간 -->
               <div class="flex items-center gap-1 text-sm text-gray-500">

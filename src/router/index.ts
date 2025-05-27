@@ -60,6 +60,15 @@ const router = createRouter({
       name: 'plan',
       component: () => import('@/views/PlanView.vue'),
     },
+    {
+      path: '/plan/:id/edit',
+      name: 'PlanEdit',
+      component: () => import('@/views/PlanEditView.vue'),
+      props: true,
+      meta: {
+        requiresAuth: true, // 로그인 필요
+      },
+    },
     // 도시 정보와 함께 여행 계획 페이지로 이동
     {
       path: '/plan/:cityId/:cityEn/:cityKo',

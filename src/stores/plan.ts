@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { PlaceResult } from '@/composables/plan/usePlaceSearch';
-import { createTripPlan, type CreateTripPlanRequest } from '@/services/api';
+import { createTripPlan, updateTripPlan, type CreateTripPlanRequest } from '@/services/api';
 
 interface DateRange {
   start: Date | null;
@@ -31,6 +31,11 @@ export const usePlanStore = defineStore('plan', () => {
 
   // 여행 계획 데이터 - 각 일차별 장소들
   const dayPlans = ref<Record<number, DayPlan>>({});
+
+  // 편집 모드 관련 상태 추가
+  const isEditMode = ref(false);
+  const originalTripId = ref<number | null>(null);
+  const editModeData = ref<{ cityId: number; cityName: string } | null>(null);
 
   // Step 1: 날짜 설정
   const selectedDateRange = ref<DateRange>({
@@ -215,18 +220,30 @@ export const usePlanStore = defineStore('plan', () => {
       // 데이터 변환
       const planData = convertToPlanData(cityId, cityName);
 
-      // API 요청
-      const response = await createTripPlan(planData);
+      // 편집 모드인지 확인
+      if (isEditMode.value && originalTripId.value) {
+        // 편집 모드: 업데이트 API 호출
+        const response = await updateTripPlan(originalTripId.value, planData);
 
-      if ('data' in response) {
-        console.log('여행 계획 생성 성공:', response.data.tripId);
-        // 성공 시 처리 (예: 결과 페이지로 이동)
-        return response.data.tripId;
+        if ('data' in response) {
+          console.log('여행 계획 수정 성공:', response.data.tripId);
+          return response.data.tripId;
+        } else {
+          throw new Error(response.message);
+        }
       } else {
-        throw new Error(response.message);
+        // 생성 모드: 기존 생성 API 호출
+        const response = await createTripPlan(planData);
+
+        if ('data' in response) {
+          console.log('여행 계획 생성 성공:', response.data.tripId);
+          return response.data.tripId;
+        } else {
+          throw new Error(response.message);
+        }
       }
     } catch (error) {
-      console.error('여행 계획 생성 실패:', error);
+      console.error('여행 계획 처리 실패:', error);
       throw error;
     } finally {
       isSubmitting.value = false;
@@ -279,6 +296,48 @@ export const usePlanStore = defineStore('plan', () => {
     };
   };
 
+  // 편집 모드 설정 함수
+  // 편집 모드 설정 함수 (디버깅 로그 추가)
+  const setEditMode = (tripId: number, cityId: number, cityName: string) => {
+    isEditMode.value = true;
+    originalTripId.value = tripId;
+    editModeData.value = { cityId, cityName };
+  };
+
+  // 편집 모드 해제 함수
+  const clearEditMode = () => {
+    isEditMode.value = false;
+    originalTripId.value = null;
+    editModeData.value = null;
+  };
+
+  // planStore 초기화 함수 (편집 모드에서 나갈 때 사용)
+  const resetStore = () => {
+    // 모든 상태를 초기값으로 리셋
+    currentStep.value = 1;
+    drawerOpen.value = true;
+    showDrawerContent.value = true;
+    dayPlans.value = {};
+    selectedDateRange.value = { start: null, end: null };
+    tempDateRange.value = { start: null, end: null };
+    showDatePicker.value = true;
+    invitedFriends.value = [];
+    inviteNickname.value = '';
+    accommodationSettings.value = {
+      type: '',
+      priceRange: { min: 0, max: 0 },
+      amenities: [],
+    };
+    searchResults.value = [];
+    searchFilters.value = {
+      category: '',
+      distance: 0,
+      rating: 0,
+    };
+    isSubmitting.value = false;
+    clearEditMode();
+  };
+
   return {
     // State
     currentStep,
@@ -294,6 +353,11 @@ export const usePlanStore = defineStore('plan', () => {
     accommodationSettings,
     searchResults,
     searchFilters,
+
+    // 편집 모드 관련 상태
+    isEditMode,
+    originalTripId,
+    editModeData,
 
     // Computed
     isDrawerVisible,
@@ -319,5 +383,10 @@ export const usePlanStore = defineStore('plan', () => {
     formatDate,
     isSubmitting,
     submitTripPlan,
+
+    // 편집 모드 관련 액션
+    setEditMode,
+    clearEditMode,
+    resetStore,
   };
 });
