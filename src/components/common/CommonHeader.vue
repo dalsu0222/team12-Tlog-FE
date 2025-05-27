@@ -27,13 +27,27 @@ const handleLogout = () => {
       </div>
       <ul class="flex min-h-full items-center gap-8 text-sm">
         <li class="hover:text-bold cursor-pointer">
-          <router-link to="/" class="px-4 py-5">홈</router-link>
+          <router-link to="/" class="px-4 py-5" :class="{ 'text-bold': $route.path === '/' }" exact>
+            홈
+          </router-link>
         </li>
         <li class="hover:text-bold cursor-pointer">
-          <router-link to="/plans" class="px-4 py-5">계획 리스트</router-link>
+          <router-link
+            to="/plans"
+            class="px-4 py-5"
+            :class="{ 'text-bold': $route.path.startsWith('/plans') }"
+          >
+            계획 리스트
+          </router-link>
         </li>
         <li class="hover:text-bold cursor-pointer">
-          <router-link to="/records" class="px-4 py-5">AI 후기 리스트</router-link>
+          <router-link
+            to="/records"
+            class="px-4 py-5"
+            :class="{ 'text-bold': $route.path.startsWith('/records') }"
+          >
+            AI 후기 리스트
+          </router-link>
         </li>
       </ul>
       <div class="flex items-center">

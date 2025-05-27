@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Card, CardContent } from '@/components/ui/card';
 import FeatureCard from './FeatureCard.vue';
 import { MapPin, Sparkles } from 'lucide-vue-next';
 import type { Component } from 'vue';
@@ -48,6 +47,7 @@ const features: Feature[] = [
           :key="index"
           :feature="feature"
           :index="index"
+          class="cursor-pointer"
         />
       </div>
     </div>
