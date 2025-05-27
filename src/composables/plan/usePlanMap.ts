@@ -239,6 +239,53 @@ export function usePlanMap() {
     `;
   }
 
+  // 간소화된 InfoWindow 콘텐츠 생성 (편집/디테일 모드용)
+  function createSimpleInfoWindowContent(place: PlaceResult): string {
+    // 장소 타입 표시 (숙소는 다른 색상으로)
+    const placeTypeText = getPlaceTypeText(place.types);
+    const isAccommodationPlace = isAccommodation(place.types);
+
+    const typeHTML = placeTypeText
+      ? `<div style="display:inline-block;background:${isAccommodationPlace ? '#E8F5E8' : '#E3F2FD'};color:${isAccommodationPlace ? '#2E7D32' : '#1976D2'};padding:3px 8px;border-radius:12px;font-size:11px;margin-top:4px;">${placeTypeText}</div>`
+      : '';
+
+    // 메인 콘텐츠를 가로로 배치
+    const hasImage = !!place.photoUrl;
+
+    return `
+    <div style="
+      font-size:14px;
+      width:280px;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    ">
+      ${
+        hasImage
+          ? `
+        <div style="flex-shrink:0;">
+          <img src="${place.photoUrl}" alt="${place.name}" style="
+            width:80px;
+            height:60px;
+            object-fit:cover;
+            border-radius:8px;
+          " />
+        </div>
+      `
+          : ''
+      }
+      
+      <div style="flex:1;min-width:0;">
+        <div>
+          <strong style="font-size:16px;color:#333;display:block;margin-bottom:4px;">${place.name}</strong>
+          ${typeHTML}
+        </div>
+      </div>
+    </div>
+  `;
+  }
+
   // 예쁜 커스텀 마커 생성 함수
   function createCustomMarker(
     order: number,
@@ -456,7 +503,11 @@ export function usePlanMap() {
   }
 
   // 특정 일차의 모든 마커를 다시 그리는 함수 (순서 번호 업데이트용)
-  async function refreshMarkersForDay(day: number, dayPlan: DayPlan) {
+  async function refreshMarkersForDay(
+    day: number,
+    dayPlan: DayPlan,
+    useSimpleInfo: boolean = false
+  ) {
     if (!map) return;
 
     // 해당 일차의 기존 마커들 제거
@@ -468,12 +519,12 @@ export function usePlanMap() {
 
     // 숙소 마커 다시 생성
     if (dayPlan.accommodation) {
-      await addSingleMarker(day, dayPlan.accommodation, 'accommodation');
+      await addSingleMarker(day, dayPlan.accommodation, 'accommodation', undefined, useSimpleInfo);
     }
 
     // 장소 마커들 순서대로 다시 생성
     for (let i = 0; i < dayPlan.places.length; i++) {
-      await addSingleMarker(day, dayPlan.places[i], 'place', i + 1);
+      await addSingleMarker(day, dayPlan.places[i], 'place', i + 1, useSimpleInfo);
     }
 
     // Polyline 업데이트
@@ -485,7 +536,8 @@ export function usePlanMap() {
     day: number,
     place: PlaceResult,
     type: 'accommodation' | 'place',
-    order?: number
+    order?: number,
+    useSimpleInfo: boolean = false // 새로운 옵션 추가
   ) {
     const { AdvancedMarkerElement } = (await google.maps.importLibrary(
       'marker'
@@ -514,7 +566,10 @@ export function usePlanMap() {
     // 클릭 이벤트 추가 - 풍부한 정보창 표시
     marker.addEventListener('gmp-click', () => {
       infoWindow.close();
-      infoWindow.setContent(createRichInfoWindowContent(place));
+      const content = useSimpleInfo
+        ? createSimpleInfoWindowContent(place)
+        : createRichInfoWindowContent(place);
+      infoWindow.setContent(content);
       infoWindow.open(map, marker);
       map?.panTo(place.location);
     });
@@ -533,12 +588,13 @@ export function usePlanMap() {
     day: number,
     place: PlaceResult,
     orderOrType: number | 'accommodation',
-    dayPlan: DayPlan
+    dayPlan: DayPlan,
+    useSimpleInfo: boolean = false
   ) {
     if (orderOrType === 'accommodation') {
-      await addSingleMarker(day, place, 'accommodation');
+      await addSingleMarker(day, place, 'accommodation', undefined, useSimpleInfo);
     } else {
-      await addSingleMarker(day, place, 'place', orderOrType as number);
+      await addSingleMarker(day, place, 'place', orderOrType as number, useSimpleInfo);
     }
 
     // Polyline 업데이트
@@ -546,14 +602,23 @@ export function usePlanMap() {
   }
 
   // 마커 제거 후 해당 일차 전체 새로고침
-  async function removeMarkerForDay(day: number, placeId: string, dayPlan: DayPlan) {
+  async function removeMarkerForDay(
+    day: number,
+    placeId: string,
+    dayPlan: DayPlan,
+    useSimpleInfo: boolean = false
+  ) {
     // 전체 마커 새로고침으로 순서 번호 업데이트
-    await refreshMarkersForDay(day, dayPlan);
+    await refreshMarkersForDay(day, dayPlan, useSimpleInfo);
   }
 
   // 새로운 함수: 드래그로 순서 변경 시 호출
-  async function updateMarkersForDayPlan(day: number, dayPlan: DayPlan) {
-    await refreshMarkersForDay(day, dayPlan);
+  async function updateMarkersForDayPlan(
+    day: number,
+    dayPlan: DayPlan,
+    useSimpleInfo: boolean = false
+  ) {
+    await refreshMarkersForDay(day, dayPlan, useSimpleInfo);
   }
 
   function moveToLocation(position: google.maps.LatLng | google.maps.LatLngLiteral) {
@@ -567,7 +632,11 @@ export function usePlanMap() {
   }
 
   // 검색 결과 클릭 시 마커 표시 및 infoWindow 표시 - 수정된 버전
-  function showMarkerForSearchClick(place: PlaceResult, dayPlans: Record<number, DayPlan>) {
+  function showMarkerForSearchClick(
+    place: PlaceResult,
+    dayPlans: Record<number, DayPlan>,
+    useSimpleInfo: boolean = false
+  ) {
     if (!map) return;
 
     // 이미 일정에 추가된 장소인지 확인 (숙소와 일반 장소 모두 확인)
@@ -589,7 +658,10 @@ export function usePlanMap() {
 
         // 기존 마커에서 infoWindow 표시
         infoWindow.close();
-        infoWindow.setContent(createRichInfoWindowContent(place));
+        const content = useSimpleInfo
+          ? createSimpleInfoWindowContent(place)
+          : createRichInfoWindowContent(place);
+        infoWindow.setContent(content);
         infoWindow.open(map, existingMarker);
         map?.panTo(place.location);
         return;
@@ -616,13 +688,19 @@ export function usePlanMap() {
     // 검색 마커 클릭 시 정보창 표시 - 풍부한 정보창 표시
     searchClickMarker.value.addEventListener('gmp-click', () => {
       infoWindow.close();
-      infoWindow.setContent(createRichInfoWindowContent(place));
+      const content = useSimpleInfo
+        ? createSimpleInfoWindowContent(place)
+        : createRichInfoWindowContent(place);
+      infoWindow.setContent(content);
       infoWindow.open(map, searchClickMarker.value);
     });
 
     // ✅ 마커 생성 직후 infoWindow 자동 오픈
     infoWindow.close();
-    infoWindow.setContent(createRichInfoWindowContent(place));
+    const content = useSimpleInfo
+      ? createSimpleInfoWindowContent(place)
+      : createRichInfoWindowContent(place);
+    infoWindow.setContent(content);
     infoWindow.open(map, searchClickMarker.value);
   }
 

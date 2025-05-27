@@ -226,7 +226,10 @@ const loadTripData = async () => {
       if ('data' in response.data) {
         const tripDetail = response.data.data;
 
-        // 1. 도시 정보 설정
+        // 1. 편집 모드 설정
+        planStore.setEditMode(tripDetail.tripId);
+
+        // 2. 도시 정보 설정
         const cityConfig = getCityMapConfig(tripDetail.cityId);
         if (cityConfig) {
           currentCityConfig.value = cityConfig;
@@ -238,22 +241,22 @@ const loadTripData = async () => {
           };
         }
 
-        // 2. 날짜 정보 설정
+        // 3. 날짜 정보 설정
         planStore.setDateRange({
           start: new Date(tripDetail.startDate),
           end: new Date(tripDetail.endDate),
         });
 
-        // 3. 친구 초대 정보 설정 (본인 제외)
+        // 4. 친구 초대 정보 설정 (본인 제외)
         // TODO: 현재 사용자 정보가 필요하면 추가 구현
 
-        // 4. dayPlans 초기화
+        // 5. dayPlans 초기화
         planStore.initializeDayPlans();
 
-        // 5. 기존 계획 데이터를 planStore에 설정
+        // 6. 기존 계획 데이터를 planStore에 설정
         await loadExistingPlans(tripDetail.plans);
 
-        // 6. Step 4로 이동 (편집 모드이므로)
+        // 7. Step 4로 이동 (편집 모드이므로)
         planStore.setCurrentStep(4);
 
         console.log('여행 계획 데이터 로드 완료:', tripDetail);
@@ -304,7 +307,7 @@ const loadExistingPlans = async (plans: Plan[]) => {
         address: '', // API에서 주소 정보가 없으므로 빈 값
         location: new google.maps.LatLng(plan.latitude, plan.longitude),
         types: getPlaceTypesFromId(plan.placeTypeId),
-        description: plan.memo || getDefaultDescriptionForType(plan.placeTypeId),
+        // description: plan.memo || getDefaultDescriptionForType(plan.placeTypeId),
         rating: 0,
         userRatingsTotal: 0,
       };
@@ -331,19 +334,6 @@ const getPlaceTypesFromId = (placeTypeId: number): string[] => {
     6: ['establishment'], // 기타
   };
   return typeMap[placeTypeId] || ['establishment'];
-};
-
-// placeTypeId에 따른 기본 설명 생성 함수 (PlanDetail.vue와 동일)
-const getDefaultDescriptionForType = (placeTypeId: number): string => {
-  const descriptionMap: Record<number, string> = {
-    1: '편안한 숙박을 위한 최적의 장소입니다.',
-    2: '꼭 방문해보시길 추천하는 명소입니다.',
-    3: '맛있는 음식을 즐길 수 있는 곳입니다.',
-    4: '좋은 분위기에서 커피를 즐길 수 있습니다.',
-    5: '다양한 쇼핑을 즐길 수 있는 장소입니다.',
-    6: '방문할 만한 가치가 있는 장소입니다.',
-  };
-  return descriptionMap[placeTypeId] || '방문할 만한 가치가 있는 장소입니다.';
 };
 
 // 지도 초기화 함수 (PlanView.vue와 동일하지만 currentCityConfig 사용)
@@ -406,40 +396,40 @@ const geocodeAndMoveToCity = async (map: google.maps.Map) => {
   }
 };
 
-// 기존 계획의 마커들을 지도에 추가하는 함수
+// 기존 계획의 마커들을 지도에 추가하는 함수 (편집 모드용 - 간소화된 infoWindow)
 const addExistingMarkersToMap = async () => {
   // planStore의 dayPlans를 순회하며 마커 추가
   for (const [day, dayPlan] of Object.entries(planStore.dayPlans)) {
     const dayNumber = Number(day);
 
-    // 숙소 마커 추가
+    // 숙소 마커 추가 (간소화된 infoWindow 사용)
     if (dayPlan.accommodation) {
-      addMarkerForDay(dayNumber, dayPlan.accommodation, 'accommodation', dayPlan);
+      addMarkerForDay(dayNumber, dayPlan.accommodation, 'accommodation', dayPlan, true); // useSimpleInfo = true
     }
 
-    // 일반 장소 마커들 추가
+    // 일반 장소 마커들 추가 (간소화된 infoWindow 사용)
     dayPlan.places.forEach((place, index) => {
-      addMarkerForDay(dayNumber, place, index + 1, dayPlan);
+      addMarkerForDay(dayNumber, place, index + 1, dayPlan, true); // useSimpleInfo = true
     });
   }
 };
 
-// 이벤트 핸들러들 (PlanView.vue와 동일)
+// 이벤트 핸들러들 (편집 모드용 - 간소화된 infoWindow 사용)
 function handlePlaceClick(place: PlaceResult) {
   moveToLocation(place.location);
-  showMarkerForSearchClick(place, planStore.dayPlans);
+  showMarkerForSearchClick(place, planStore.dayPlans, true); // useSimpleInfo = true
 }
 
 function handleRemovePlace(day: number, placeId: string) {
   planStore.removePlaceFromDay(day, placeId);
-  removeMarkerForDay(day, placeId, planStore.dayPlans[day]);
+  removeMarkerForDay(day, placeId, planStore.dayPlans[day], true); // useSimpleInfo = true
 }
 
 function handleOrderChanged(day: number) {
   const dayPlan = planStore.dayPlans[day];
   if (dayPlan) {
     nextTick(() => {
-      updateMarkersForDayPlan(day, planStore.dayPlans[day]);
+      updateMarkersForDayPlan(day, planStore.dayPlans[day], true); // useSimpleInfo = true
     });
   }
 }
@@ -466,11 +456,11 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
   days.forEach(day => {
     const existingAccommodation = planStore.dayPlans[day]?.accommodation;
     if (existingAccommodation) {
-      removeMarkerForDay(day, existingAccommodation.placeId, planStore.dayPlans[day]);
+      removeMarkerForDay(day, existingAccommodation.placeId, planStore.dayPlans[day], true); // useSimpleInfo = true
     }
 
     planStore.addAccommodationToDay(day, place);
-    addMarkerForDay(day, place, 'accommodation', planStore.dayPlans[day]);
+    addMarkerForDay(day, place, 'accommodation', planStore.dayPlans[day], true); // useSimpleInfo = true
   });
 
   selectedAccommodationPlace.value = null;
@@ -478,7 +468,7 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
 
 function handlePlaceConfirm(day: number, place: PlaceResult) {
   planStore.addPlaceToDay(day, place);
-  addMarkerForDay(day, place, planStore.dayPlans[day].places.length, planStore.dayPlans[day]);
+  addMarkerForDay(day, place, planStore.dayPlans[day].places.length, planStore.dayPlans[day], true); // useSimpleInfo = true
   selectedPlace.value = null;
 }
 
@@ -532,10 +522,10 @@ watch(
   }
 );
 
-// 컴포넌트 언마운트 시 planStore 초기화 (선택사항)
+// 컴포넌트 언마운트 시 planStore 초기화
 onUnmounted(() => {
-  // 편집 모드에서 나갈 때 필요하다면 상태 초기화
-  // planStore.$reset(); // 만약 reset 함수가 있다면
+  // 편집 모드에서 나갈 때 상태 초기화
+  planStore.resetStore();
 });
 </script>
 
