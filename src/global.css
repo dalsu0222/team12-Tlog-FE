@@ -10,10 +10,6 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -40,6 +36,19 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* 속성 재정의 */
+  --color-primary: #dbf1ff; /* = point-100 */
+  --color-primary-foreground: #0a0b0d;
+  --color-secondary: #a1dbff; /* = point-300 */
+  --color-secondary-foreground: #0a0b0d;
+  --color-bold: #5ab4f0;
+  --color-bold-foreground: #0a0b0d;
+  --color-bold-dark: #3189c6;
+  --color-bold-dark-foreground: #ffffff;
+  --font-sans: 'Pretendard', sans-serif;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
 }
 
 :root {
@@ -119,5 +128,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Pretendard', sans-serif;
+  }
+  button {
+    @apply cursor-pointer;
   }
 }
