@@ -2,24 +2,7 @@ import { ref, readonly, onUnmounted } from 'vue';
 import api from '@/services/api/api';
 import type { ApiResponse, ApiSuccess } from '@/services/api/types';
 import { AxiosError } from 'axios';
-
-interface EditLockResponse {
-  success: boolean;
-  heartbeatInterval?: number;
-  currentOwner?: number;
-}
-
-interface HeartbeatResponse {
-  success: boolean;
-  nextHeartbeat?: number;
-  shouldRestart?: boolean;
-}
-
-interface EditStatusResponse {
-  locked: boolean;
-  currentOwner?: number;
-  timeRemaining?: number;
-}
+import type { EditLockResponse, HeartbeatResponse, EditStatusResponse } from '@/services/api';
 
 function isApiSuccess<T>(response: ApiResponse<T>): response is ApiSuccess<T> {
   return 'data' in response;
