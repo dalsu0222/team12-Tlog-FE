@@ -9,6 +9,12 @@ interface DateRange {
   end: Date | null;
 }
 
+// 친구 정보 인터페이스 추가
+export interface InvitedFriend {
+  userId: number;
+  nickname: string;
+}
+
 // DayPlan 타입 정의를 store로 이동
 export interface DayPlan {
   accommodation?: PlaceResult;
@@ -48,8 +54,8 @@ export const usePlanStore = defineStore('plan', () => {
   });
   const showDatePicker = ref(true);
 
-  // Step 2: 친구 초대
-  const invitedFriends = ref<string[]>([]);
+  // Step 2: 친구 초대 - 개선된 구조
+  const invitedFriends = ref<InvitedFriend[]>([]);
   const inviteNickname = ref('');
 
   // Step 3: 숙소 설정
@@ -178,17 +184,31 @@ export const usePlanStore = defineStore('plan', () => {
     );
   };
 
+  // 친구 관리 함수들 - 개선된 버전
+  const addFriendWithId = (friend: InvitedFriend) => {
+    // 중복 체크 (userId 기준)
+    if (!invitedFriends.value.some(f => f.userId === friend.userId)) {
+      invitedFriends.value.push(friend);
+    }
+  };
+
+  const removeFriendById = (userId: number) => {
+    invitedFriends.value = invitedFriends.value.filter(friend => friend.userId !== userId);
+  };
+
+  // 기존 호환성을 위한 함수들 (닉네임 기반)
   const addFriend = (nickname: string) => {
-    if (nickname && !invitedFriends.value.includes(nickname)) {
-      invitedFriends.value.push(nickname);
+    // 임시로 userId -1을 사용 (실제로는 사용하지 않음)
+    if (nickname && !invitedFriends.value.some(f => f.nickname === nickname)) {
+      invitedFriends.value.push({
+        userId: -1, // 임시 ID
+        nickname: nickname,
+      });
     }
   };
 
   const removeFriend = (nickname: string) => {
-    const index = invitedFriends.value.indexOf(nickname);
-    if (index > -1) {
-      invitedFriends.value.splice(index, 1);
-    }
+    invitedFriends.value = invitedFriends.value.filter(friend => friend.nickname !== nickname);
   };
 
   const updateAccommodationSettings = (settings: Partial<typeof accommodationSettings.value>) => {
@@ -286,8 +306,14 @@ export const usePlanStore = defineStore('plan', () => {
         });
       });
     }
+
+    // 초대된 친구들의 userId 배열 생성 (유효한 userId만)
+    const friendUserIds = invitedFriends.value
+      .filter(friend => friend.userId > 0) // 임시 ID (-1) 제외
+      .map(friend => friend.userId);
+
     return {
-      friendUserIds: [], // TODO: 실제 친구 ID로 변환 필요
+      friendUserIds: friendUserIds,
       cityId: cityId,
       startDate: selectedDateRange.value.start?.toISOString() || '',
       endDate: selectedDateRange.value.end?.toISOString() || '',
@@ -297,7 +323,6 @@ export const usePlanStore = defineStore('plan', () => {
   };
 
   // 편집 모드 설정 함수
-  // 편집 모드 설정 함수 (디버깅 로그 추가)
   const setEditMode = (tripId: number, cityId: number, cityName: string) => {
     isEditMode.value = true;
     originalTripId.value = tripId;
@@ -376,8 +401,13 @@ export const usePlanStore = defineStore('plan', () => {
     removePlaceFromDay,
     hasAccommodationForDay,
     isPlaceAlreadyPlanned,
+
+    // 친구 관리
     addFriend,
     removeFriend,
+    addFriendWithId,
+    removeFriendById,
+
     updateAccommodationSettings,
     updateSearchFilters,
     formatDate,
