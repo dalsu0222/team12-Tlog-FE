@@ -1,8 +1,9 @@
 <!-- components/views/recordList/TripStorySection.vue -->
 <script setup lang="ts">
-import { type PropType } from 'vue';
+import { ref, type PropType } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'vue-sonner';
 import {
   Carousel,
   CarouselContent,
@@ -10,7 +11,19 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { Calendar, Users } from 'lucide-vue-next';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Calendar, Users, Trash2 } from 'lucide-vue-next';
+import api from '@/services/api/api';
 
 // 여행 후기 타입 정의
 interface TripStory {
@@ -52,7 +65,11 @@ defineProps({
   },
 });
 
-const emit = defineEmits(['navigate']);
+const emit = defineEmits(['navigate', 'trip-deleted', 'refresh-data']);
+
+// 삭제 관련 상태
+const deletingTripId = ref<number | null>(null);
+const isDeleting = ref(false);
 
 // 페이지 이동 핸들러
 const handleNavigate = (tripId: number, isCompleted: boolean) => {
@@ -62,6 +79,51 @@ const handleNavigate = (tripId: number, isCompleted: boolean) => {
 // 완료 상태 확인 함수
 const getCompletionStatus = (story: TripStory, buttonConfig: ButtonConfig) => {
   return buttonConfig.useStep2Status ? story.isStep2Completed : story.isStep1Completed;
+};
+
+// 여행 삭제 핸들러
+const handleDeleteTrip = async (tripId: number, tripTitle: string) => {
+  try {
+    isDeleting.value = true;
+    deletingTripId.value = tripId;
+
+    const response = await api.delete(`/api/trips/${tripId}`);
+
+    console.log('여행 삭제 완료:', response.data);
+
+    window.location.reload();
+  } catch (error: any) {
+    console.error('여행 삭제 실패:', error);
+
+    // 에러 메시지 표시
+    let errorMessage = '여행 삭제에 실패했습니다.';
+
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.response?.status === 403) {
+      errorMessage = '해당 여행에 참여하지 않은 사용자입니다.';
+    } else if (error.response?.status === 404) {
+      errorMessage = '존재하지 않는 여행입니다.';
+    } else if (error.response?.status === 401) {
+      errorMessage = '로그인이 필요합니다.';
+    }
+
+    toast.error(errorMessage);
+  } finally {
+    isDeleting.value = false;
+    deletingTripId.value = null;
+  }
+};
+
+// 삭제 확인 다이얼로그에서 사용할 메시지 생성
+const getDeleteWarningMessage = (story: TripStory) => {
+  const hasOtherParticipants = story.participants && story.participants.length > 0;
+
+  if (hasOtherParticipants) {
+    return `'${story.title}' 여행에서 탈퇴하시겠습니까?\n\n다른 참여자들이 있어 여행은 유지되지만,\n당신의 여행 기록과 AI 후기는 모두 삭제됩니다.`;
+  } else {
+    return `'${story.title}' 여행을 완전히 삭제하시겠습니까?\n\n마지막 참여자이므로 여행과 관련된 모든 데이터가 영구적으로 삭제됩니다.`;
+  }
 };
 </script>
 
@@ -97,9 +159,48 @@ const getCompletionStatus = (story: TripStory, buttonConfig: ButtonConfig) => {
                     <h3 class="line-clamp-2 text-lg leading-tight font-semibold">
                       {{ story.title }}
                     </h3>
-                    <span class="ml-2 text-sm whitespace-nowrap text-gray-500">
-                      {{ story.createdAt }}
-                    </span>
+                    <div class="ml-2 flex items-center gap-2">
+                      <span class="text-sm whitespace-nowrap text-gray-500">
+                        {{ story.createdAt }}
+                      </span>
+
+                      <!-- 삭제 버튼 -->
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            class="h-8 w-8 p-0 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                            :disabled="isDeleting && deletingTripId === (story.tripId || story.id)"
+                          >
+                            <Trash2 class="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent class="max-w-md">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle class="text-red-600">여행 삭제 확인</AlertDialogTitle>
+                            <AlertDialogDescription class="text-md text-left whitespace-pre-line">
+                              {{ getDeleteWarningMessage(story) }}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>취소</AlertDialogCancel>
+                            <AlertDialogAction
+                              class="bg-red-600 text-white hover:bg-red-700"
+                              @click="handleDeleteTrip(story.tripId || story.id, story.title)"
+                              :disabled="isDeleting"
+                            >
+                              <span
+                                v-if="isDeleting && deletingTripId === (story.tripId || story.id)"
+                              >
+                                삭제 중...
+                              </span>
+                              <span v-else>삭제하기</span>
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
 
                   <!-- 여행 기간 표시 - 고정 높이 -->
