@@ -193,7 +193,7 @@ const getDeleteWarningMessage = (story: TripStory) => {
                             <AlertDialogCancel>취소</AlertDialogCancel>
                             <AlertDialogAction
                               class="bg-red-600 text-white hover:bg-red-700"
-                              @click="handleDeleteTrip(story.tripId || story.id, story.title)"
+                              @click="handleDeleteTrip(story.tripId || story.id)"
                               :disabled="isDeleting"
                             >
                               <span
