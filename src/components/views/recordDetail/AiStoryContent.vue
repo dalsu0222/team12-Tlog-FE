@@ -49,8 +49,8 @@ const previewHtml = computed(() => {
   return convertMarkdownToHtml(content);
 });
 
-const updateEditableContent = (value: string) => {
-  emit('update:editableContent', value);
+const updateEditableContent = (value: string | number) => {
+  emit('update:editableContent', String(value));
 };
 </script>
 

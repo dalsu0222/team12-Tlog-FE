@@ -35,7 +35,7 @@ interface Props {
   hasChanges: boolean;
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const emit = defineEmits([
   'startEditing',
   'saveStory',

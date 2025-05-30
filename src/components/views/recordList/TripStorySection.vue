@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Calendar, Users, Trash2 } from 'lucide-vue-next';
 import api from '@/services/api/api';
+import type { AxiosError } from 'axios';
 
 // 여행 후기 타입 정의
 interface TripStory {
@@ -43,6 +44,10 @@ interface ButtonConfig {
   incompleteText: string; // 미완료인 경우 버튼 텍스트
   useStep2Status?: boolean; // Step2 상태를 기준으로 할지 여부 (기본값: true)
   sameButton?: boolean;
+}
+
+interface ErrorResponse {
+  message: string;
 }
 
 defineProps({
@@ -82,7 +87,7 @@ const getCompletionStatus = (story: TripStory, buttonConfig: ButtonConfig) => {
 };
 
 // 여행 삭제 핸들러
-const handleDeleteTrip = async (tripId: number, tripTitle: string) => {
+const handleDeleteTrip = async (tripId: number) => {
   try {
     isDeleting.value = true;
     deletingTripId.value = tripId;
@@ -92,19 +97,20 @@ const handleDeleteTrip = async (tripId: number, tripTitle: string) => {
     console.log('여행 삭제 완료:', response.data);
 
     window.location.reload();
-  } catch (error: any) {
-    console.error('여행 삭제 실패:', error);
+  } catch (error) {
+    const axiosError = error as AxiosError<ErrorResponse>;
+    console.error('여행 삭제 실패:', axiosError);
 
     // 에러 메시지 표시
     let errorMessage = '여행 삭제에 실패했습니다.';
 
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.response?.status === 403) {
+    if (axiosError.response?.data?.message) {
+      errorMessage = axiosError.response.data.message;
+    } else if (axiosError.response?.status === 403) {
       errorMessage = '해당 여행에 참여하지 않은 사용자입니다.';
-    } else if (error.response?.status === 404) {
+    } else if (axiosError.response?.status === 404) {
       errorMessage = '존재하지 않는 여행입니다.';
-    } else if (error.response?.status === 401) {
+    } else if (axiosError.response?.status === 401) {
       errorMessage = '로그인이 필요합니다.';
     }
 

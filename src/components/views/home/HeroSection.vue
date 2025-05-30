@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import CitySelector from './CitySelector.vue';
 import { Users, Calendar, Camera, Share2, MapPin, ArrowRight, ChevronDown } from 'lucide-vue-next';
@@ -15,7 +14,8 @@ interface CityDto {
   cityKo: string;
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
+
 const emit = defineEmits<{
   'city-select': [cityInfo: CityDto]; // 타입 수정
   'create-plan': [];
