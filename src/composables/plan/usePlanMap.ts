@@ -40,14 +40,11 @@ export function usePlanMap() {
 
   const searchClickMarker = ref<google.maps.marker.AdvancedMarkerElement | null>(null);
   let AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let PinElement: typeof google.maps.marker.PinElement;
 
   const initMap = async () => {
     const { Map: GoogleMap } = (await loader.importLibrary('maps')) as google.maps.MapsLibrary;
     const markerLib = (await loader.importLibrary('marker')) as google.maps.MarkerLibrary;
     AdvancedMarkerElement = markerLib.AdvancedMarkerElement;
-    PinElement = markerLib.PinElement;
 
     map = new GoogleMap(document.getElementById('map') as HTMLElement, {
       center: { lat: 37.501274, lng: 127.039585 },
@@ -602,12 +599,7 @@ export function usePlanMap() {
   }
 
   // 마커 제거 후 해당 일차 전체 새로고침
-  async function removeMarkerForDay(
-    day: number,
-    placeId: string,
-    dayPlan: DayPlan,
-    useSimpleInfo: boolean = false
-  ) {
+  async function removeMarkerForDay(day: number, dayPlan: DayPlan, useSimpleInfo: boolean = false) {
     // 전체 마커 새로고침으로 순서 번호 업데이트
     await refreshMarkersForDay(day, dayPlan, useSimpleInfo);
   }

@@ -10,7 +10,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { MapPin, Search, ChevronDown } from 'lucide-vue-next';
+import { MapPin, Search } from 'lucide-vue-next';
 import api from '@/services/api/api';
 
 interface Props {
