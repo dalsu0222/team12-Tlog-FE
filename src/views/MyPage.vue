@@ -10,7 +10,6 @@ import {
   CheckCircle,
   Sparkles,
   Plus,
-  PenTool,
   Calendar,
   Users,
   Edit,
@@ -23,6 +22,19 @@ interface UserStats {
   totalTrips: number;
   completedRecords: number;
   aiStories: number;
+}
+
+interface TripData {
+  trip: {
+    tripId: number;
+    title: string;
+    startDate: string;
+    endDate: string;
+    createdAt: string;
+  };
+  hasStep1: boolean;
+  hasStep2: boolean;
+  tripParticipant?: number[];
 }
 
 interface RecentTrip {
@@ -68,12 +80,12 @@ const loadUserStats = async () => {
   try {
     // 여행 목록 조회로 통계 계산
     const response = await api.get('/api/trips/record');
-    const trips = response.data.data.trips;
+    const trips = response.data.data.trips as TripData[];
 
     userStats.value = {
       totalTrips: trips.length,
-      completedRecords: trips.filter((trip: any) => trip.hasStep1).length,
-      aiStories: trips.filter((trip: any) => trip.hasStep2).length,
+      completedRecords: trips.filter(trip => trip.hasStep1).length,
+      aiStories: trips.filter(trip => trip.hasStep2).length,
     };
   } catch (err) {
     console.error('사용자 통계 로드 실패:', err);
@@ -83,16 +95,13 @@ const loadUserStats = async () => {
 const loadRecentTrips = async () => {
   try {
     const response = await api.get('/api/trips/record');
-    const trips = response.data.data.trips;
+    const trips = response.data.data.trips as TripData[];
 
     // 최근 3개 여행만 가져오기 (생성일 기준 내림차순)
     recentTrips.value = trips
-      .sort(
-        (a: any, b: any) =>
-          new Date(b.trip.createdAt).getTime() - new Date(a.trip.createdAt).getTime()
-      )
+      .sort((a, b) => new Date(b.trip.createdAt).getTime() - new Date(a.trip.createdAt).getTime())
       .slice(0, 3)
-      .map((tripData: any) => ({
+      .map(tripData => ({
         tripId: tripData.trip.tripId,
         title: tripData.trip.title,
         startDate: tripData.trip.startDate,

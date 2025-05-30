@@ -7,7 +7,7 @@ interface Props {
   isGeneratingStory: boolean;
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const emit = defineEmits(['generate']);
 
 const handleGenerate = () => {

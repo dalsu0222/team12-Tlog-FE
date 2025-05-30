@@ -81,7 +81,7 @@ const router = createRouter({
 });
 
 // 라우터 가드 추가
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _, next) => {
   const authStore = useAuthStore();
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {

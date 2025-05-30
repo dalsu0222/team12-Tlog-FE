@@ -19,13 +19,13 @@ const router = useRouter();
 const myStories = computed<TripStory[]>(() => {
   return allTripData.value
     .filter(trip => !trip.hasStep1 || !trip.hasStep2)
-    .map((trip, index) => convertToTripStory(trip, index));
+    .map(trip => convertToTripStory(trip));
 });
 
 const completedStories = computed<TripStory[]>(() => {
   return allTripData.value
     .filter(trip => trip.hasStep1 && trip.hasStep2)
-    .map((trip, index) => convertToTripStory(trip, index));
+    .map(trip => convertToTripStory(trip));
 });
 
 const loadTripData = async () => {
@@ -42,7 +42,7 @@ const loadTripData = async () => {
   }
 };
 
-const handleNavigate = ({ tripId, isCompleted }: { tripId: number; isCompleted: boolean }) => {
+const handleNavigate = ({ tripId }: { tripId: number }) => {
   router.push(`/records/${tripId}`);
 };
 

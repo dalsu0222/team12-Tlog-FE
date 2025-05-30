@@ -17,7 +17,7 @@ const router = useRouter();
 
 // 모든 여행 계획 (기록 완료 여부 상관없이)
 const allPlans = computed<TripStory[]>(() => {
-  return allTripData.value.map((trip, index) => convertToTripStory(trip, index));
+  return allTripData.value.map(trip => convertToTripStory(trip));
 });
 
 const loadTripData = async () => {
@@ -34,7 +34,7 @@ const loadTripData = async () => {
   }
 };
 
-const handleNavigate = ({ tripId, isCompleted }: { tripId: number; isCompleted: boolean }) => {
+const handleNavigate = ({ tripId }: { tripId: number }) => {
   // 계획 상세 페이지로 이동 (예: /plans/123)
   router.push(`/plan/${tripId}`);
 };
