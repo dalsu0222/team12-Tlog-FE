@@ -43,8 +43,8 @@ interface MemoRecord {
 }
 
 interface SaveCallbacks {
-  onSuccess?: (data: any) => void;
-  onError?: (error: any) => void;
+  onSuccess?: (data: { statusCode: number; message: string; data: unknown }) => void;
+  onError?: (error: Error) => void;
 }
 
 const route = useRoute();
@@ -164,7 +164,7 @@ const handleSaveMemos = async (memoRecords: MemoRecord[], callbacks?: SaveCallba
 
     // 에러 콜백 호출
     if (callbacks?.onError) {
-      callbacks.onError(err);
+      callbacks.onError(err as Error);
     } else {
       throw err;
     }
