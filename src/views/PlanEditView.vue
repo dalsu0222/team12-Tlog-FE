@@ -580,7 +580,7 @@ function handlePlaceClick(place: PlaceResult) {
 
 function handleRemovePlace(day: number, placeId: string) {
   planStore.removePlaceFromDay(day, placeId);
-  removeMarkerForDay(day, placeId, planStore.dayPlans[day], true);
+  removeMarkerForDay(day, planStore.dayPlans[day]);
 }
 
 function handleOrderChanged(day: number) {
@@ -614,7 +614,7 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
   days.forEach(day => {
     const existingAccommodation = planStore.dayPlans[day]?.accommodation;
     if (existingAccommodation) {
-      removeMarkerForDay(day, existingAccommodation.placeId, planStore.dayPlans[day], true);
+      removeMarkerForDay(day, planStore.dayPlans[day]);
     }
 
     planStore.addAccommodationToDay(day, place);
