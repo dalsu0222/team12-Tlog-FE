@@ -35,6 +35,7 @@ export function useGoogleAuth() {
    */
   async function handleGoogleLogin(): Promise<void> {
     if (isLoading.value) return;
+    let userInfo: GoogleUserInfo | undefined;
 
     try {
       isLoading.value = true;
@@ -45,7 +46,7 @@ export function useGoogleAuth() {
       }
 
       // Google 팝업 로그인
-      const userInfo = await googleAuthService.loginWithPopup();
+      userInfo = await googleAuthService.loginWithPopup();
 
       // 백엔드 로그인
       await loginToBackend(userInfo.id);
@@ -58,9 +59,10 @@ export function useGoogleAuth() {
       if (error instanceof AxiosError && error.response?.status === 401) {
         // 신규 사용자인 경우 회원가입으로 이동
         try {
-          const userInfo = await googleAuthService.loginWithPopup();
-          authStore.setTempToken(userInfo.id);
-          router.push('/signup');
+          if (userInfo) {
+            authStore.setTempToken(userInfo.id);
+            router.push('/signup');
+          }
         } catch (signupError) {
           console.error('회원가입 처리 오류:', signupError);
           alert('회원가입 처리 중 오류가 발생했습니다.');
