@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 import { api } from '@/services/api';
@@ -9,20 +8,71 @@ import googleIcon from '@/assets/google-icon.svg';
 import kakaoIcon from '@/assets/kakao-icon.svg';
 import { AxiosError } from 'axios';
 
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id?: Record<string, unknown>;
+        oauth2?: {
+          initTokenClient: (config: Record<string, unknown>) => {
+            requestAccessToken: () => void;
+          };
+        };
+      };
+    };
+  }
+}
+
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const router = useRouter();
 const authStore = useAuthStore();
 
+// Google OAuth2 팝업 로그인
 function triggerGoogleLogin() {
-  window.google?.accounts?.id?.prompt(); // 수동으로 One Tap 실행
+  if (!window.google?.accounts?.oauth2) {
+    alert('Google 로그인 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
+  const tokenClient = window.google.accounts.oauth2.initTokenClient({
+    client_id: googleClientId,
+    scope: 'openid email profile',
+    callback: async (response: { error?: string; access_token?: string }) => {
+      if (response.error) {
+        console.error('Google 로그인 오류:', response.error);
+        alert('로그인이 취소되었거나 오류가 발생했습니다.');
+        return;
+      }
+
+      if (response.access_token) {
+        try {
+          // Google API를 사용해 사용자 정보 가져오기
+          const userInfoResponse = await fetch(
+            `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${response.access_token}`
+          );
+
+          if (!userInfoResponse.ok) {
+            throw new Error('사용자 정보를 가져올 수 없습니다.');
+          }
+
+          const userInfo = await userInfoResponse.json();
+
+          // 백엔드에 Google ID로 로그인 요청하기
+          await handleGoogleLogin(userInfo.id);
+        } catch (error) {
+          console.error('Google 사용자 정보 가져오기 실패:', error);
+          alert('로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
+      }
+    },
+  });
+
+  // 팝업 열기
+  tokenClient.requestAccessToken();
 }
 
-async function handleGoogleLogin({ credential }: { credential: string }) {
-  const idToken = credential;
-  const payload = JSON.parse(atob(idToken.split('.')[1]));
-  const googleUserId = payload.sub;
-
+async function handleGoogleLogin(googleUserId: string) {
   try {
     const response = await api.post('/api/auth/login', { socialId: googleUserId });
 
@@ -36,23 +86,11 @@ async function handleGoogleLogin({ credential }: { credential: string }) {
       authStore.setTempToken(googleUserId);
       router.push('/signup');
     } else {
-      alert('로그인 실패: 다시 시도해주세요');
+      console.error('로그인 API 오류:', err);
+      alert('로그인 실패: 서버 연결을 확인해주세요.');
     }
   }
 }
-
-onMounted(() => {
-  window.handleGoogleLogin = handleGoogleLogin;
-
-  window.google?.accounts?.id?.initialize({
-    client_id: googleClientId,
-    callback: (res: { credential: string }) => {
-      if (res.credential) {
-        window.handleGoogleLogin(res);
-      }
-    },
-  });
-});
 </script>
 
 <template>
