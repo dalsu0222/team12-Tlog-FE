@@ -269,8 +269,7 @@ function handlePlaceClick(place: PlaceResult) {
 
 function handleRemovePlace(day: number, placeId: string) {
   planStore.removePlaceFromDay(day, placeId);
-  // dayPlan 전달 추가
-  removeMarkerForDay(day, placeId, planStore.dayPlans[day]);
+  removeMarkerForDay(day, planStore.dayPlans[day]);
 }
 
 // 🆕 순서 변경 핸들러 - 드래그 앤 드롭으로 순서가 바뀔 때 호출
@@ -313,7 +312,7 @@ function handleAccommodationConfirm(days: number[], place: PlaceResult) {
     // 기존 숙소가 있다면 마커 제거
     const existingAccommodation = planStore.dayPlans[day]?.accommodation;
     if (existingAccommodation) {
-      removeMarkerForDay(day, existingAccommodation.placeId, planStore.dayPlans[day]);
+      removeMarkerForDay(day, planStore.dayPlans[day]);
     }
 
     // 새 숙소 추가
