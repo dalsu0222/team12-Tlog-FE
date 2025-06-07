@@ -21,7 +21,7 @@ jobs:
 
       - name: Add upstream remote
         run: |
-          git remote add upstream https://github.com/ORGANIZATION_NAME/ORIGINAL_REPO_NAME.git
+          git remote add upstream https://github.com/1313BAN/team12-Tlog-FE.git
 
       - name: Fetch and merge upstream
         run: |
