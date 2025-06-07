@@ -14,3 +14,4 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           repository: dalsu0222/team12-Tlog-FE
           event-type: upstream-updated
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
