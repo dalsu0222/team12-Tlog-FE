@@ -1,0 +1,16 @@
+name: Notify Fork of Changes
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          repository: YOUR_USERNAME/YOUR_FORKED_REPO_NAME
+          event-type: upstream-updated
